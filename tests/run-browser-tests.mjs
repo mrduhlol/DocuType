@@ -1,5 +1,6 @@
-import { spawn, spawnSync } from "node:child_process";
-import { createServer } from "node:http";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { createServer as createHttpServer } from "node:http";
+import { createServer as createHttpsServer } from "node:https";
 import {
   existsSync,
   mkdtempSync,
@@ -12,9 +13,18 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const PAGES = process.argv.slice(2).length
-  ? process.argv.slice(2)
-  : ["tests/browser/panel.html", "tests/browser/popup.html"];
+const PAGE_SPECS = process.argv.slice(2).length
+  ? process.argv.slice(2).map((entry) => ({ path: entry, label: entry }))
+  : [
+      { path: "tests/browser/panel.html", label: "tests/browser/panel.html" },
+      { path: "tests/browser/popup.html", label: "tests/browser/popup.html" },
+      { path: "tests/browser/content.html", label: "tests/browser/content.html (non-Docs page)" },
+      {
+        path: "tests/browser/content.html",
+        label: "tests/browser/content.html (Docs URL)",
+        docsUrl: true,
+      },
+    ];
 const CHROME_CANDIDATES = [
   process.env.CHROME_PATH,
   "chromium",
@@ -32,6 +42,10 @@ const MIME_TYPES = {
   ".svg": "image/svg+xml",
 };
 
+const ROUTE_ALIASES = new Map([
+  ["/document/d/abc123/edit", "/tests/browser/content.html"],
+]);
+
 function findChrome() {
   for (const candidate of CHROME_CANDIDATES) {
     if (candidate.includes(path.sep) && existsSync(candidate)) {
@@ -47,35 +61,40 @@ function findChrome() {
   return null;
 }
 
-function startServer() {
-  const server = createServer((request, response) => {
-    try {
-      const pathname = decodeURIComponent(
-        new URL(request.url || "/", "http://127.0.0.1").pathname
-      );
-      let filePath = path.resolve(ROOT, `.${pathname}`);
-      if (!filePath.startsWith(`${ROOT}${path.sep}`) && filePath !== ROOT) {
-        response.writeHead(403);
-        response.end("Forbidden");
-        return;
-      }
+function serveRequest(request, response) {
+  try {
+    let pathname = decodeURIComponent(
+      new URL(request.url || "/", "http://127.0.0.1").pathname
+    );
 
-      if (statSync(filePath).isDirectory()) {
-        filePath = path.join(filePath, "index.html");
-      }
-
-      const body = readFileSync(filePath);
-      response.writeHead(200, {
-        "Content-Type": MIME_TYPES[path.extname(filePath)] || "application/octet-stream",
-        "Cache-Control": "no-store",
-      });
-      response.end(body);
-    } catch {
-      response.writeHead(404);
-      response.end("Not found");
+    if (ROUTE_ALIASES.has(pathname)) {
+      pathname = ROUTE_ALIASES.get(pathname);
     }
-  });
 
+    let filePath = path.resolve(ROOT, `.${pathname}`);
+    if (!filePath.startsWith(`${ROOT}${path.sep}`) && filePath !== ROOT) {
+      response.writeHead(403);
+      response.end("Forbidden");
+      return;
+    }
+
+    if (statSync(filePath).isDirectory()) {
+      filePath = path.join(filePath, "index.html");
+    }
+
+    const body = readFileSync(filePath);
+    response.writeHead(200, {
+      "Content-Type": MIME_TYPES[path.extname(filePath)] || "application/octet-stream",
+      "Cache-Control": "no-store",
+    });
+    response.end(body);
+  } catch {
+    response.writeHead(404);
+    response.end("Not found");
+  }
+}
+
+function listen(server) {
   return new Promise((resolve, reject) => {
     server.once("error", reject);
     server.listen(0, "127.0.0.1", () => {
@@ -83,6 +102,57 @@ function startServer() {
       resolve({ server, port: address.port });
     });
   });
+}
+
+function startHttpServer() {
+  return listen(createHttpServer(serveRequest));
+}
+
+function startHttpsServer(tls) {
+  return listen(createHttpsServer({ key: tls.key, cert: tls.cert }, serveRequest));
+}
+
+function createTlsConfig() {
+  if (spawnSync("which", ["openssl"]).status !== 0) {
+    return null;
+  }
+
+  const directory = mkdtempSync(path.join(tmpdir(), "docutype-tls-"));
+  const keyPath = path.join(directory, "key.pem");
+  const certPath = path.join(directory, "cert.pem");
+
+  try {
+    execFileSync(
+      "openssl",
+      [
+        "req",
+        "-x509",
+        "-newkey",
+        "rsa:2048",
+        "-nodes",
+        "-keyout",
+        keyPath,
+        "-out",
+        certPath,
+        "-days",
+        "1",
+        "-subj",
+        "/CN=docs.google.com",
+        "-addext",
+        "subjectAltName=DNS:docs.google.com,IP:127.0.0.1",
+      ],
+      { stdio: "ignore" }
+    );
+
+    return {
+      directory,
+      key: readFileSync(keyPath),
+      cert: readFileSync(certPath),
+    };
+  } catch {
+    rmSync(directory, { recursive: true, force: true });
+    return null;
+  }
 }
 
 function extractResults(html) {
@@ -131,16 +201,31 @@ async function main() {
     return;
   }
 
-  const { server, port } = await startServer();
+  const httpServer = await startHttpServer();
+  const needsHttps = PAGE_SPECS.some((page) => page.docsUrl);
+  const tls = needsHttps ? createTlsConfig() : null;
+  const httpsServer = needsHttps && tls ? await startHttpsServer(tls) : null;
   let failed = false;
 
   try {
-    for (const page of PAGES) {
-      const profile = mkdtempSync(path.join(tmpdir(), "docutype-chrome-"));
-      const url = `http://127.0.0.1:${port}/${page.replace(/^\//, "")}`;
-      console.log(`\n▶ ${page}`);
+    if (needsHttps && !httpsServer) {
+      failed = true;
+      console.error("openssl is required to run the Docs-URL content scenarios.");
+    }
 
-      const result = await runChrome(chrome, [
+    for (const page of PAGE_SPECS) {
+      if (page.docsUrl && !httpsServer) {
+        console.error(`\n▶ ${page.label}\nSkipped: HTTPS test server unavailable.`);
+        continue;
+      }
+
+      const profile = mkdtempSync(path.join(tmpdir(), "docutype-chrome-"));
+      const url = page.docsUrl
+        ? `https://docs.google.com:${httpsServer.port}/document/d/abc123/edit`
+        : `http://127.0.0.1:${httpServer.port}/${page.path.replace(/^\//, "")}`;
+      console.log(`\n▶ ${page.label}`);
+
+      const chromeArgs = [
         "--headless",
         "--no-sandbox",
         "--disable-gpu",
@@ -158,9 +243,17 @@ async function main() {
         `--user-data-dir=${profile}`,
         "--virtual-time-budget=30000",
         "--dump-dom",
-        url,
-      ]);
+      ];
 
+      if (page.docsUrl) {
+        chromeArgs.push(
+          "--host-resolver-rules=MAP docs.google.com 127.0.0.1",
+          "--ignore-certificate-errors"
+        );
+      }
+
+      chromeArgs.push(url);
+      const result = await runChrome(chrome, chromeArgs);
       const output = `${result.stdout || ""}${result.stderr || ""}`;
       const results = extractResults(result.stdout || "");
       const passed =
@@ -187,7 +280,13 @@ async function main() {
       rmSync(profile, { recursive: true, force: true });
     }
   } finally {
-    server.close();
+    httpServer.server.close();
+    if (httpsServer) {
+      httpsServer.server.close();
+    }
+    if (tls) {
+      rmSync(tls.directory, { recursive: true, force: true });
+    }
   }
 
   if (failed) {

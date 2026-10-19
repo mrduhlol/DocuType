@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DocuType content harness</title>
+    <style>
+      body {
+        margin: 0;
+        background: #f6f8fa;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      }
+
+      #results {
+        position: fixed;
+        inset: 0;
+        margin: 0;
+        padding: 18px 22px;
+        overflow: auto;
+        background: #111418;
+        color: #d9f2df;
+        font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
+        white-space: pre-wrap;
+        z-index: 10;
+      }
+
+      #results.failed {
+        color: #ffc9bd;
+      }
+    </style>
+    <script>
+      (() => {
+        "use strict";
+
+        const listeners = [];
+        const stub = {
+          runtime: {
+            onMessage: {
+              addListener(listener) {
+                listeners.push(listener);
+              },
+            },
+          },
+        };
+
+        try {
+          Object.defineProperty(window, "chrome", {
+            configurable: true,
+            writable: true,
+            value: stub,
+          });
+        } catch {
+          window.chrome = stub;
+        }
+
+        window.__docutypeListeners = listeners;
+      })();
+    </script>
+  </head>
+  <body>
+    <pre id="results">BROWSER TESTS NOT RUN</pre>
+
+    <script src="/lib/shared.js"></script>
+    <script src="/content/typing-engine.js"></script>
+    <script src="/content/panel-styles.js"></script>
+    <script src="/content/panel.js"></script>
+    <script src="/content/content.js"></script>
+    <script>
+      (() => {
+        "use strict";
+
+        const resultsElement = document.getElementById("results");
+        const listeners = window.__docutypeListeners;
+        const tests = [];
+
+        function addTest(name, run) {
+          tests.push({ name, run });
+        }
+
+        function assert(condition, message) {
+          if (!condition) {
+            throw new Error(message || "Assertion failed");
+          }
+        }
+
+        function assertEqual(actual, expected, message) {
+          if (actual !== expected) {
+            throw new Error(
+              message || `Expected ${JSON.stringify(expected)}, received ${JSON.stringify(actual)}`
+            );
+          }
+        }
+
+        function sleep(ms) {
+          return new Promise((resolve) => setTimeout(resolve, ms));
+        }
+
+        function loadScript(path) {
+          return new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = path;
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error(`Failed to load ${path}`));
+            document.head.appendChild(script);
+          });
+        }
+
+        async function loadContentBundle() {
+          const files = [
+            "/lib/shared.js",
+            "/content/typing-engine.js",
+            "/content/panel-styles.js",
+            "/content/panel.js",
+            "/content/content.js",
+          ];
+
+          for (const file of files) {
+            await loadScript(file);
+          }
+        }
+
+        function dispatch(message) {
+          const listener = listeners[0];
+          assert(listener, "No content-script message listener is registered");
+
+          let responded = false;
+          let response = null;
+          const returned = listener(message, { id: "docutype-test" }, (value) => {
+            responded = true;
+            response = value;
+          });
+
+          return { responded, response, returned };
+        }
+
+        function panelHosts() {
+          return document.querySelectorAll("#docutype-root").length;
+        }
+
+        function stopPanel() {
+          const host = document.querySelector("#docutype-root");
+          if (!host || !host.shadowRoot) {
+            return;
+          }
+
+          const stop = host.shadowRoot.querySelector('[data-action="stop"]');
+          if (stop) {
+            stop.click();
+          }
+        }
+
+        async function resetPanels() {
+          stopPanel();
+          await sleep(30);
+          document.querySelectorAll("#docutype-root").forEach((node) => node.remove());
+        }
+
+        const shared = window.DocuType && window.DocuType.shared;
+        const isDocsPage = Boolean(shared && shared.isGoogleDocsDocumentUrl(location.href));
+
+        addTest("exposes the shared protocol constant", async () => {
+          assert(shared, "Shared helpers are missing");
+          assertEqual(shared.START_SESSION_MESSAGE, "DOCUTYPE_START_SESSION");
+        });
+
+        addTest("registers exactly one message listener", async () => {
+          assertEqual(listeners.length, 1);
+        });
+
+        addTest("ignores unrelated messages", async () => {
+          const result = dispatch({ type: "SOMETHING_ELSE" });
+          assertEqual(result.responded, false, "Unrelated messages must not be answered");
+        });
+
+        addTest("stays single-listener after duplicate injection", async () => {
+          await loadContentBundle();
+          await loadContentBundle();
+          assertEqual(listeners.length, 1, "Duplicate injection must not add listeners");
+        });
+
+        if (isDocsPage) {
+          addTest("starts a session on a Docs document", async () => {
+            const result = dispatch({
+              type: shared.START_SESSION_MESSAGE,
+              text: "Hello there. Practice makes progress.",
+              wpm: 45,
+            });
+
+            assertEqual(result.responded, true, "Start must respond");
+            assertEqual(result.response.ok, true, "Start should succeed on a Docs page");
+            assertEqual(panelHosts(), 1, "Exactly one panel should mount");
+          });
+
+          addTest("replaces the panel when a new session starts", async () => {
+            const result = dispatch({
+              type: shared.START_SESSION_MESSAGE,
+              text: "A replacement passage.",
+              wpm: 65,
+            });
+
+            assertEqual(result.response.ok, true, "Replacement start should succeed");
+            assertEqual(panelHosts(), 1, "Replacement must keep exactly one panel");
+          });
+
+          addTest("rejects whitespace-only passages without touching the session", async () => {
+            const start = dispatch({
+              type: shared.START_SESSION_MESSAGE,
+              text: "A running session that must survive bad input.",
+              wpm: 45,
+            });
+            assertEqual(start.response.ok, true, "Setup session should start");
+            const runningHost = document.querySelector("#docutype-root");
+            assert(runningHost, "Setup session should mount a panel");
+
+            const result = dispatch({
+              type: shared.START_SESSION_MESSAGE,
+              text: "   \n\t ",
+              wpm: 45,
+            });
+
+            assertEqual(result.response.ok, false);
+            assertEqual(result.response.code, "EMPTY_TEXT");
+            assertEqual(panelHosts(), 1, "Rejected input must not remove the running panel");
+            assert(
+              document.querySelector("#docutype-root") === runningHost,
+              "Rejected input must not replace the running panel"
+            );
+          });
+
+          addTest("rejects passages beyond the character limit", async () => {
+            const start = dispatch({
+              type: shared.START_SESSION_MESSAGE,
+              text: "A second running session that must survive bad input.",
+              wpm: 45,
+            });
+            assertEqual(start.response.ok, true, "Setup session should start");
+            const runningHost = document.querySelector("#docutype-root");
+            assert(runningHost, "Setup session should mount a panel");
+
+            const result = dispatch({
+              type: shared.START_SESSION_MESSAGE,
+              text: "a".repeat(shared.MAX_TEXT_LENGTH + 1),
+              wpm: 45,
+            });
+
+            assertEqual(result.response.ok, false);
+            assertEqual(result.response.code, "TEXT_TOO_LONG");
+            assertEqual(panelHosts(), 1, "Rejected input must not remove the running panel");
+            assert(
+              document.querySelector("#docutype-root") === runningHost,
+              "Rejected input must not replace the running panel"
+            );
+          });
+
+          addTest("stop clears the session so a fresh start can mount", async () => {
+            stopPanel();
+            await sleep(40);
+            assertEqual(panelHosts(), 0, "Stop should remove the panel");
+
+            const result = dispatch({
+              type: shared.START_SESSION_MESSAGE,
+              text: "A fresh session after stopping.",
+              wpm: 30,
+            });
+
+            assertEqual(result.response.ok, true);
+            assertEqual(panelHosts(), 1);
+          });
+        } else {
+          addTest("rejects starts outside a Docs document", async () => {
+            const result = dispatch({
+              type: shared.START_SESSION_MESSAGE,
+              text: "This should never start.",
+              wpm: 45,
+            });
+
+            assertEqual(result.responded, true, "Rejection must respond");
+            assertEqual(result.response.ok, false);
+            assertEqual(result.response.code, "NOT_DOCS");
+            assertEqual(panelHosts(), 0, "No panel may mount outside Docs");
+          });
+        }
+
+        async function finish(records) {
+          const failed = records.filter((record) => !record.ok);
+          const lines = records.map((record) =>
+            record.ok ? `✔ ${record.name}` : `✖ ${record.name}\n  ${record.error}`
+          );
+
+          resultsElement.classList.toggle("failed", failed.length > 0);
+          resultsElement.textContent = `${lines.join("\n")}\n\n${
+            failed.length ? "BROWSER TESTS FAILED" : "BROWSER TESTS PASSED"
+          }`;
+          resultsElement.setAttribute("data-status", failed.length ? "failed" : "passed");
+        }
+
+        async function main() {
+          const records = [];
+          for (const testCase of tests) {
+            try {
+              await testCase.run();
+              records.push({ name: testCase.name, ok: true });
+            } catch (error) {
+              records.push({
+                name: testCase.name,
+                ok: false,
+                error: error && error.stack ? error.stack : String(error),
+              });
+            } finally {
+              await resetPanels();
+            }
+          }
+
+          await finish(records);
+        }
+
+        main().catch(async (error) => {
+          await finish([
+            {
+              name: "content harness completed",
+              ok: false,
+              error: error && error.stack ? error.stack : String(error),
+            },
+          ]);
+        });
+      })();
+    </script>
+  </body>
+</html>
