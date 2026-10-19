@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DocuType popup harness</title>
+    <style>
+      body {
+        margin: 0;
+        background: #f6f8fa;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      }
+
+      #results {
+        position: fixed;
+        inset: 0;
+        margin: 0;
+        padding: 18px 22px;
+        overflow: auto;
+        background: #111418;
+        color: #d9f2df;
+        font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
+        white-space: pre-wrap;
+        z-index: 10;
+      }
+
+      #results.failed {
+        color: #ffc9bd;
+      }
+    </style>
+  </head>
+  <body>
+    <pre id="results">BROWSER TESTS NOT RUN</pre>
+    <script>
+      (() => {
+        "use strict";
+
+        const SCENARIOS = [
+          "empty",
+          "not-docs",
+          "discarded",
+          "query-failure",
+          "success",
+          "injection-error",
+          "content-error",
+        ];
+        const resultsElement = document.getElementById("results");
+
+        function runScenario(scenario) {
+          return new Promise((resolve) => {
+            const iframe = document.createElement("iframe");
+            iframe.setAttribute("title", `DocuType popup scenario: ${scenario}`);
+            iframe.style.cssText = "position:absolute;left:-10000px;top:0;width:420px;height:680px;border:0;";
+            let settled = false;
+
+            const timer = setTimeout(() => {
+              finish([{ name: "frame completed", ok: false, error: `Timed out waiting for scenario "${scenario}".` }]);
+            }, 15000);
+
+            function finish(records) {
+              if (settled) {
+                return;
+              }
+              settled = true;
+              clearTimeout(timer);
+              window.removeEventListener("message", onMessage);
+              iframe.remove();
+              resolve(records);
+            }
+
+            function onMessage(event) {
+              if (event.source !== iframe.contentWindow || !event.data) {
+                return;
+              }
+
+              if (event.data.channel === "docutype-popup-tests" && event.data.scenario === scenario) {
+                finish(event.data.records || []);
+              }
+            }
+
+            window.addEventListener("message", onMessage);
+            iframe.src = `popup-frame.html?scenario=${encodeURIComponent(scenario)}`;
+            document.body.appendChild(iframe);
+          });
+        }
+
+        async function finish(records) {
+          const failed = records.filter((record) => !record.ok);
+          const lines = records.map((record) =>
+            record.ok ? `✔ ${record.name}` : `✖ ${record.name}\n  ${record.error}`
+          );
+
+          resultsElement.classList.toggle("failed", failed.length > 0);
+          resultsElement.textContent = `${lines.join("\n")}\n\n${
+            failed.length ? "BROWSER TESTS FAILED" : "BROWSER TESTS PASSED"
+          }`;
+          resultsElement.setAttribute("data-status", failed.length ? "failed" : "passed");
+        }
+
+        async function main() {
+          const records = [];
+          for (const scenario of SCENARIOS) {
+            const scenarioRecords = await runScenario(scenario);
+            records.push(
+              ...scenarioRecords.map((record) => ({
+                ...record,
+                name: `${scenario} · ${record.name}`,
+              }))
+            );
+          }
+          await finish(records);
+        }
+
+        main().catch(async (error) => {
+          await finish([
+            {
+              name: "popup harness completed",
+              ok: false,
+              error: error && error.stack ? error.stack : String(error),
+            },
+          ]);
+        });
+      })();
+    </script>
+  </body>
+</html>

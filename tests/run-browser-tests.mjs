@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PAGES = process.argv.slice(2).length
   ? process.argv.slice(2)
-  : ["tests/browser/panel.html"];
+  : ["tests/browser/panel.html", "tests/browser/popup.html"];
 const CHROME_CANDIDATES = [
   process.env.CHROME_PATH,
   "chromium",

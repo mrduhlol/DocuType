@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DocuType popup scenario</title>
+    <link rel="stylesheet" href="/popup/popup.css" />
+    <script>
+      (() => {
+        "use strict";
+
+        const CHANNEL = "docutype-popup-tests";
+        const CONTENT_FILES = [
+          "lib/shared.js",
+          "content/typing-engine.js",
+          "content/panel-styles.js",
+          "content/panel.js",
+          "content/content.js",
+        ];
+        const DOCS_TAB = {
+          id: 42,
+          active: true,
+          discarded: false,
+          windowId: 1,
+          url: "https://docs.google.com/document/d/demo123/edit",
+        };
+
+        function sleep(ms) {
+          return new Promise((resolve) => setTimeout(resolve, ms));
+        }
+
+        function assert(condition, message) {
+          if (!condition) {
+            throw new Error(message || "Assertion failed");
+          }
+        }
+
+        function assertEqual(actual, expected, message) {
+          if (actual !== expected) {
+            throw new Error(
+              message || `Expected ${JSON.stringify(expected)}, received ${JSON.stringify(actual)}`
+            );
+          }
+        }
+
+        async function waitFor(read, description, timeoutMs = 4000) {
+          const started = performance.now();
+          while (performance.now() - started < timeoutMs) {
+            const value = read();
+            if (value) {
+              return value;
+            }
+            await sleep(25);
+          }
+          throw new Error(`Timed out waiting for ${description}`);
+        }
+
+        function createChromeMock(scenario) {
+          const configuration = {
+            "not-docs": { tab: { ...DOCS_TAB, url: "https://example.com/" } },
+            discarded: { tab: { ...DOCS_TAB, discarded: true } },
+            "query-failure": { queryError: new Error("tabs.query is unavailable") },
+            empty: { tab: { ...DOCS_TAB } },
+            success: { tab: { ...DOCS_TAB } },
+            "injection-error": {
+              tab: { ...DOCS_TAB },
+              executeScriptError: new Error("Cannot access contents of the page."),
+            },
+            "content-error": {
+              tab: { ...DOCS_TAB },
+              sendMessageResponse: { ok: false, code: "NOT_DOCS" },
+            },
+          }[scenario];
+
+          if (!configuration) {
+            throw new Error(`Unknown popup scenario: ${scenario}`);
+          }
+
+          const calls = {
+            queries: 0,
+            injectedFiles: [],
+            messages: [],
+            closes: 0,
+          };
+
+          window.chrome = {
+            tabs: {
+              query: async () => {
+                calls.queries += 1;
+                if (configuration.queryError) {
+                  throw configuration.queryError;
+                }
+                return [{ ...configuration.tab }];
+              },
+              sendMessage: async (tabId, message) => {
+                calls.messages.push({ tabId, message });
+                return configuration.sendMessageResponse || { ok: true };
+              },
+            },
+            scripting: {
+              executeScript: async ({ target, files }) => {
+                calls.injectedFiles.push(files[0]);
+                if (configuration.executeScriptError) {
+                  throw configuration.executeScriptError;
+                }
+                return [{ result: null }];
+              },
+            },
+          };
+
+          try {
+            Object.defineProperty(window, "close", {
+              configurable: true,
+              writable: true,
+              value: () => {
+                calls.closes += 1;
+              },
+            });
+          } catch {
+            window.close = () => {
+              calls.closes += 1;
+            };
+          }
+
+          return { calls };
+        }
+
+        function loadScript(path) {
+          return new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = path;
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error(`Failed to load ${path}`));
+            document.head.appendChild(script);
+          });
+        }
+
+        async function loadPopupMarkup() {
+          const response = await fetch("/popup/popup.html");
+          if (!response.ok) {
+            throw new Error(`Could not load popup/popup.html (${response.status})`);
+          }
+
+          const html = await response.text();
+          const parsed = new DOMParser().parseFromString(html, "text/html");
+          parsed.querySelectorAll("script").forEach((script) => script.remove());
+          document.body.innerHTML = parsed.body.innerHTML;
+        }
+
+        async function boot() {
+          const scenario = new URLSearchParams(location.search).get("scenario") || "empty";
+
+          await loadPopupMarkup();
+          const mock = createChromeMock(scenario);
+          await loadScript("/lib/shared.js");
+          await loadScript("/popup/popup.js");
+          await sleep(80);
+
+          const records = await runScenario(scenario, mock);
+          window.parent.postMessage({ channel: CHANNEL, scenario, records }, "*");
+        }
+
+        async function runScenario(scenario, mock) {
+          const records = [];
+
+          async function test(name, run) {
+            try {
+              await run();
+              records.push({ name, ok: true });
+            } catch (error) {
+              records.push({
+                name,
+                ok: false,
+                error: error && error.stack ? error.stack : String(error),
+              });
+            }
+          }
+
+          const startButton = () => document.getElementById("startButton");
+          const passage = () => document.getElementById("passage");
+          const banner = () => document.getElementById("contextBanner");
+          const bannerText = () => document.getElementById("contextText").textContent;
+          const formError = () => document.getElementById("formError");
+          const openDocsLink = () => document.getElementById("openDocsLink");
+          const startLabel = () => document.getElementById("startLabel");
+
+          function setPassage(value) {
+            const element = passage();
+            element.value = value;
+            element.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+
+          function submit() {
+            document
+              .getElementById("sessionForm")
+              .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+          }
+
+          function selectSpeed(wpm) {
+            const radio = document.querySelector(`input[name="wpm"][value="${wpm}"]`);
+            assert(radio, `Speed radio ${wpm} is missing`);
+            radio.checked = true;
+          }
+
+          if (scenario === "empty") {
+            await test("starts disabled with an empty passage", async () => {
+              assert(await waitFor(() => startButton(), "the start button"), "Start button missing");
+              assert(startButton().disabled, "Start should be disabled before a passage is entered");
+            });
+
+            await test("treats whitespace-only text as empty", async () => {
+              setPassage("   \n\t  ");
+              assert(startButton().disabled, "Whitespace-only text must not enable Start");
+            });
+
+            await test("enables Start for real text and disables it again when cleared", async () => {
+              setPassage("Hello there");
+              assert(!startButton().disabled, "Real text should enable Start");
+              setPassage("");
+              assert(startButton().disabled, "Clearing the passage should disable Start");
+            });
+
+            return records;
+          }
+
+          if (scenario === "not-docs") {
+            await test("shows a Docs-only banner", async () => {
+              await waitFor(() => !banner().hidden, "the context banner");
+              assert(bannerText().includes("Google Docs"), `Unexpected banner copy: ${bannerText()}`);
+              assert(!openDocsLink().hidden, "The Open Google Docs link should be visible");
+            });
+
+            await test("keeps Start disabled outside Docs", async () => {
+              setPassage("Hello");
+              assert(startButton().disabled, "Start must stay disabled outside a Docs document");
+            });
+
+            return records;
+          }
+
+          if (scenario === "discarded") {
+            await test("explains that the tab is inactive", async () => {
+              await waitFor(() => !banner().hidden, "the context banner");
+              assert(
+                /inactive|discarded/i.test(bannerText()),
+                `Unexpected banner copy: ${bannerText()}`
+              );
+              setPassage("Hello");
+              assert(startButton().disabled, "Start must stay disabled for a discarded tab");
+            });
+
+            return records;
+          }
+
+          if (scenario === "query-failure") {
+            await test("recovers when the tab cannot be inspected", async () => {
+              await waitFor(() => !banner().hidden, "the context banner");
+              assert(
+                /couldn't check|reopen/i.test(bannerText()),
+                `Unexpected banner copy: ${bannerText()}`
+              );
+              setPassage("Hello");
+              assert(startButton().disabled, "Start must stay disabled when tab state is unknown");
+            });
+
+            return records;
+          }
+
+          if (scenario === "success") {
+            await test("injects the content modules in order", async () => {
+              await waitFor(() => startButton(), "the start button");
+              setPassage("  Line one\r\nLine two  ");
+              selectSpeed(65);
+              submit();
+              await waitFor(() => mock.calls.closes === 1, "the popup to close");
+
+              assertEqual(mock.calls.injectedFiles.length, CONTENT_FILES.length, "Injected file count");
+              CONTENT_FILES.forEach((expected, index) => {
+                assertEqual(mock.calls.injectedFiles[index], expected, `Injected file ${index}`);
+              });
+            });
+
+            await test("sends the normalized passage and chosen pace", async () => {
+              await waitFor(() => mock.calls.messages.length === 1, "the start message");
+              const message = mock.calls.messages[0].message;
+              assertEqual(message.type, "DOCUTYPE_START_SESSION");
+              assertEqual(message.text, "Line one\nLine two");
+              assertEqual(message.wpm, 65);
+            });
+
+            await test("closes the popup after a successful start", async () => {
+              assertEqual(mock.calls.closes, 1);
+              assert(formError().hidden, "No error should be shown on success");
+            });
+
+            return records;
+          }
+
+          if (scenario === "injection-error") {
+            await test("shows a recovery error and re-enables Start", async () => {
+              await waitFor(() => startButton(), "the start button");
+              setPassage("Hello");
+              submit();
+              await waitFor(() => !formError().hidden, "the error message");
+
+              assert(/reload|blocked/i.test(formError().textContent), `Unexpected error copy: ${formError().textContent}`);
+              assertEqual(startLabel().textContent.trim(), "Start practice session");
+              assert(!startButton().disabled, "Start should be usable again after an error");
+              assertEqual(mock.calls.messages.length, 0, "No start message should be sent");
+              assertEqual(mock.calls.closes, 0, "The popup must stay open after an error");
+            });
+
+            return records;
+          }
+
+          if (scenario === "content-error") {
+            await test("surfaces a content-script rejection", async () => {
+              await waitFor(() => startButton(), "the start button");
+              setPassage("Hello");
+              submit();
+              await waitFor(() => !formError().hidden, "the error message");
+
+              assert(
+                /Google Docs document/i.test(formError().textContent),
+                `Unexpected error copy: ${formError().textContent}`
+              );
+              assert(!startButton().disabled, "Start should be usable again after a content error");
+              assertEqual(mock.calls.closes, 0, "The popup must stay open after a content error");
+            });
+
+            return records;
+          }
+
+          throw new Error(`Unknown popup scenario: ${scenario}`);
+        }
+
+        function reportFatal(error) {
+          const scenario = new URLSearchParams(location.search).get("scenario") || "unknown";
+          window.parent.postMessage(
+            {
+              channel: CHANNEL,
+              scenario,
+              records: [
+                {
+                  name: "popup harness booted",
+                  ok: false,
+                  error: error && error.stack ? error.stack : String(error),
+                },
+              ],
+            },
+            "*"
+          );
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+          boot().catch(reportFatal);
+        });
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>
