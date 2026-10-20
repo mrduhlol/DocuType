@@ -8,9 +8,11 @@
 
   const CONTENT_FILES = [
     "lib/shared.js",
+    "lib/browser-api.js",
     "content/typing-engine.js",
-    "content/panel-styles.js",
-    "content/panel.js",
+    "content/docs-input.js",
+    "content/control-bar-styles.js",
+    "content/control-bar.js",
     "content/content.js",
   ];
 

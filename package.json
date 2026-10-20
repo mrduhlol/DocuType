@@ -6,7 +6,7 @@
   "scripts": {
     "test": "node --test tests",
     "test:browser": "node tests/run-browser-tests.mjs",
-    "check": "node --check lib/shared.js && node --check content/typing-engine.js && node --check content/panel-styles.js && node --check content/panel.js && node --check content/content.js && node --check popup/popup.js"
+    "check": "node --check lib/shared.js && node --check lib/browser-api.js && node --check content/typing-engine.js && node --check content/docs-input.js && node --check content/control-bar-styles.js && node --check content/control-bar.js && node --check content/content.js && node --check popup/popup.js"
   },
   "engines": {
     "node": ">=20"

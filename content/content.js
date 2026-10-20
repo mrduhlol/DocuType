@@ -5,33 +5,122 @@
 
   // The popup injects all content files on every Start so already-open Docs
   // tabs work immediately after installation. This guard keeps one listener
-  // and one live panel no matter how often the bundle is injected.
+  // and one live session no matter how often the bundle is injected.
   if (namespace.__contentBooted) {
     return;
   }
 
   const shared = namespace.shared;
-  const Panel = namespace.Panel;
-  const chromeApi = root.chrome;
+  const browserApi = namespace.browserApi;
+  const docsInput = namespace.docsInput;
+  const ControlBar = namespace.ControlBar;
+  const TypingEngine = namespace.TypingEngine;
+  const extensionApi = browserApi && browserApi.getExtensionApi(root);
 
   if (
     !shared ||
-    typeof Panel !== "function" ||
-    !chromeApi ||
-    !chromeApi.runtime ||
-    !chromeApi.runtime.onMessage ||
-    typeof chromeApi.runtime.onMessage.addListener !== "function"
+    !docsInput ||
+    typeof ControlBar !== "function" ||
+    typeof TypingEngine !== "function" ||
+    !extensionApi ||
+    !extensionApi.runtime ||
+    !extensionApi.runtime.onMessage ||
+    typeof extensionApi.runtime.onMessage.addListener !== "function"
   ) {
     return;
   }
 
-  let activePanel = null;
+  const INITIAL_DELAY_MS = 1200;
+  let activeSession = null;
 
   function isSupportedPage() {
     try {
       return shared.isGoogleDocsDocumentUrl(root.location.href);
     } catch {
       return false;
+    }
+  }
+
+  function createSession(text, wpm, editor) {
+    let bar = null;
+    let engine = null;
+    let session = null;
+    let destroyed = false;
+
+    function destroySession() {
+      if (destroyed) {
+        return;
+      }
+
+      destroyed = true;
+      if (activeSession === session) {
+        activeSession = null;
+      }
+
+      if (engine) {
+        engine.destroy();
+      }
+
+      if (bar) {
+        bar.destroy();
+      }
+    }
+
+    try {
+      bar = new ControlBar({
+        total: shared.countCharacters(text),
+        wpm,
+        onPause() {
+          if (engine && engine.state === "running") {
+            engine.pause();
+          }
+        },
+        onResume() {
+          if (engine && engine.state === "paused") {
+            engine.resume();
+          }
+        },
+        onStop: destroySession,
+      });
+
+      engine = new TypingEngine({
+        text,
+        wpm,
+        initialDelayMs: INITIAL_DELAY_MS,
+        onReveal({ char, index, total }) {
+          const result = docsInput.insertUnit(editor, char);
+          if (!result.ok) {
+            engine.stop();
+            bar.setError(result.message);
+            return;
+          }
+
+          bar.setProgress(index, total);
+        },
+        onStateChange(state) {
+          bar.setState(state);
+        },
+        onComplete() {
+          bar.setProgress(shared.countCharacters(text), shared.countCharacters(text));
+        },
+      });
+
+      session = { destroy: destroySession };
+
+      if (!engine.start()) {
+        destroySession();
+        return null;
+      }
+
+      return session;
+    } catch {
+      if (engine) {
+        engine.destroy();
+      }
+      if (bar) {
+        bar.destroy();
+      }
+      return null;
     }
   }
 
@@ -51,30 +140,25 @@
 
     const wpm = shared.clampWpm(message && message.wpm);
 
-    // Replace atomically: destroy the old panel only after the new input
-    // has been validated, so a bad request cannot kill a running session.
-    if (activePanel) {
-      const previousPanel = activePanel;
-      activePanel = null;
-      previousPanel.destroy();
+    // Check for the editor before replacing a running session, so a bad
+    // request cannot kill work that is already inserting text.
+    const editor = docsInput.findEditor(root.document);
+    if (!editor) {
+      return { ok: false, code: "EDITOR_NOT_FOUND" };
     }
 
-    let panel;
-    try {
-      panel = new Panel({
-        text,
-        wpm,
-        onClose() {
-          if (activePanel === panel) {
-            activePanel = null;
-          }
-        },
-      });
-    } catch {
+    if (activeSession) {
+      const previousSession = activeSession;
+      activeSession = null;
+      previousSession.destroy();
+    }
+
+    const session = createSession(text, wpm, editor);
+    if (!session) {
       return { ok: false, code: "START_FAILED" };
     }
 
-    activePanel = panel;
+    activeSession = session;
     return { ok: true };
   }
 
@@ -88,5 +172,5 @@
   }
 
   namespace.__contentBooted = true;
-  chromeApi.runtime.onMessage.addListener(handleMessage);
+  extensionApi.runtime.onMessage.addListener(handleMessage);
 })(typeof globalThis !== "undefined" ? globalThis : this);
