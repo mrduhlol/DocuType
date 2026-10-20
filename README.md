@@ -63,14 +63,3 @@ The extension requests only `activeTab` and `scripting` permissions to access th
 
 **Some punctuation or spelling changes.** Google Docs may apply autocorrect or smart quotes while text is entered.
 
-## For contributors
-
-DocuType uses plain HTML, CSS, and vanilla JavaScript, with no runtime dependencies. To run the checks, install Node.js 20 or later and run:
-
-```sh
-npm test
-npm run test:browser
-npm run check
-```
-
-The browser tests use a simulated Docs input surface; they do not replace a manual check in a scratch document.
