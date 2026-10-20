@@ -2,7 +2,9 @@
   "use strict";
 
   const shared = globalThis.DocuType && globalThis.DocuType.shared;
-  if (!shared) {
+  const browserApi = globalThis.DocuType && globalThis.DocuType.browserApi;
+  const extensionApi = browserApi && browserApi.getExtensionApi(globalThis);
+  if (!shared || !extensionApi) {
     return;
   }
 
@@ -23,7 +25,12 @@
       "This tab isn't a Google Docs document. Open your document, then reopen DocuType.",
     EMPTY_TEXT: "Add a passage before starting.",
     TEXT_TOO_LONG: "This passage is longer than 10,000 characters. Shorten it and try again.",
-    START_FAILED: "DocuType couldn't open the practice panel. Reload the document and try again.",
+    EDITOR_NOT_FOUND:
+      "DocuType couldn't find the document editor. Click into the document, then try again.",
+    PASTE_REJECTED:
+      "Google Docs rejected the text. Make sure the document is editable and try again.",
+    TYPE_FAILED: "DocuType couldn't type into this document. Reload the page and try again.",
+    START_FAILED: "DocuType couldn't start typing. Reload the document and try again.",
     TAB_NOT_READY: "This tab isn't ready yet. Give the document a moment, then try again.",
   };
 
@@ -138,7 +145,7 @@
   function setInFlight(value) {
     state.inFlight = value;
     elements.startButton.classList.toggle("is-loading", value);
-    elements.startLabel.textContent = value ? "Starting…" : "Start practice session";
+    elements.startLabel.textContent = value ? "Starting…" : "Start typing";
     elements.startIcon.innerHTML = value ? SPINNER_ICON : ARROW_ICON;
     updateStartState();
   }
@@ -150,7 +157,7 @@
 
   async function inspectActiveTab() {
     try {
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      const tabs = await extensionApi.tabs.query({ active: true, currentWindow: true });
       const tab = Array.isArray(tabs) ? tabs[0] : null;
 
       if (!tab || typeof tab.id !== "number") {
@@ -188,7 +195,7 @@
 
   async function injectContentScripts(tabId) {
     for (const file of CONTENT_FILES) {
-      await chrome.scripting.executeScript({
+      await extensionApi.scripting.executeScript({
         target: { tabId },
         files: [file],
       });
@@ -203,10 +210,10 @@
     }
 
     if (/cannot access|extensions gallery|chrome:\/\//i.test(message)) {
-      return "Chrome blocked DocuType on this tab. Reload the document and try again.";
+      return "The browser blocked DocuType on this tab. Reload the document and try again.";
     }
 
-    return "DocuType couldn't start the session. Reload the Google Docs tab and try again.";
+    return "DocuType couldn't start typing. Reload the Google Docs tab and try again.";
   }
 
   async function handleSubmit(event) {
@@ -240,7 +247,7 @@
     try {
       await injectContentScripts(tab.id);
 
-      const response = await chrome.tabs.sendMessage(tab.id, {
+      const response = await extensionApi.tabs.sendMessage(tab.id, {
         type: shared.START_SESSION_MESSAGE,
         text,
         wpm,

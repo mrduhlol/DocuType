@@ -21,7 +21,7 @@
           </span>
           <span class="brand-copy">
             <span class="brand-name">DocuType</span>
-            <span class="brand-tagline">Guided typing practice for Google Docs</span>
+            <span class="brand-tagline">Types passages into Google Docs</span>
           </span>
         </div>
       </header>
@@ -51,7 +51,7 @@
       <form class="session-form" id="sessionForm" novalidate>
         <div class="field">
           <div class="field-head">
-            <label class="field-label" for="passage">Practice passage</label>
+            <label class="field-label" for="passage">Passage</label>
             <span class="char-count" id="charCount">0 / 10,000</span>
           </div>
           <textarea
@@ -60,7 +60,7 @@
             name="passage"
             rows="5"
             maxlength="10000"
-            placeholder="Paste the passage you want to practice…"
+            placeholder="Paste the passage you want DocuType to type…"
             spellcheck="false"
             autofocus
           ></textarea>
@@ -69,13 +69,13 @@
         <fieldset class="field speed-field">
           <legend class="field-label" id="speedLabel">Typing speed</legend>
           <div class="speed-options" id="speedOptions" role="radiogroup" aria-labelledby="speedLabel"></div>
-          <p class="field-hint">How fast the passage reveals — not a measure of your typing.</p>
+          <p class="field-hint">How fast DocuType types into your document.</p>
         </fieldset>
 
         <p class="form-error" id="formError" role="alert" hidden></p>
 
         <button class="start-button" id="startButton" type="submit" disabled>
-          <span class="start-label" id="startLabel">Start practice session</span>
+          <span class="start-label" id="startLabel">Start typing</span>
           <span class="start-icon" id="startIcon" aria-hidden="true">
             <svg viewBox="0 0 16 16" fill="none" focusable="false">
               <path d="M3.4 8h8.4M8.4 4.6 11.8 8l-3.4 3.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
@@ -94,13 +94,14 @@
           </span>
           <span>Nothing is uploaded or saved. The passage stays in your browser.</span>
         </p>
-        <p class="footer-note footer-note--practice">
-          <span>You type it yourself — DocuType never edits your document. Progress is approximate.</span>
+        <p class="footer-note footer-note--warning">
+          <span>DocuType inserts the passage into your document. Place your cursor first, and use it only where outside help is allowed.</span>
         </p>
       </footer>
     </main>
 
     <script src="../lib/shared.js"></script>
+    <script src="../lib/browser-api.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

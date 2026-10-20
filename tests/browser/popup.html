@@ -41,8 +41,11 @@
           "discarded",
           "query-failure",
           "success",
+          "firefox-success",
           "injection-error",
           "content-error",
+          "editor-error",
+          "paste-error",
         ];
         const resultsElement = document.getElementById("results");
 
@@ -79,7 +82,8 @@
             }
 
             window.addEventListener("message", onMessage);
-            iframe.src = `popup-frame.html?scenario=${encodeURIComponent(scenario)}`;
+            const api = scenario === "firefox-success" ? "browser" : "chrome";
+            iframe.src = `popup-frame.html?scenario=${encodeURIComponent(scenario)}&api=${api}`;
             document.body.appendChild(iframe);
           });
         }

@@ -57,13 +57,14 @@
           throw new Error(`Timed out waiting for ${description}`);
         }
 
-        function createChromeMock(scenario) {
+        function createExtensionMock(scenario, apiName) {
           const configuration = {
             "not-docs": { tab: { ...DOCS_TAB, url: "https://example.com/" } },
             discarded: { tab: { ...DOCS_TAB, discarded: true } },
             "query-failure": { queryError: new Error("tabs.query is unavailable") },
             empty: { tab: { ...DOCS_TAB } },
             success: { tab: { ...DOCS_TAB } },
+            "firefox-success": { tab: { ...DOCS_TAB } },
             "injection-error": {
               tab: { ...DOCS_TAB },
               executeScriptError: new Error("Cannot access contents of the page."),
@@ -71,6 +72,14 @@
             "content-error": {
               tab: { ...DOCS_TAB },
               sendMessageResponse: { ok: false, code: "NOT_DOCS" },
+            },
+            "editor-error": {
+              tab: { ...DOCS_TAB },
+              sendMessageResponse: { ok: false, code: "EDITOR_NOT_FOUND" },
+            },
+            "paste-error": {
+              tab: { ...DOCS_TAB },
+              sendMessageResponse: { ok: false, code: "PASTE_REJECTED" },
             },
           }[scenario];
 
@@ -85,7 +94,7 @@
             closes: 0,
           };
 
-          window.chrome = {
+          const extensionApi = {
             tabs: {
               query: async () => {
                 calls.queries += 1;
@@ -109,6 +118,24 @@
               },
             },
           };
+
+          if (apiName === "browser") {
+            window.browser = extensionApi;
+            window.chrome = {
+              tabs: {
+                query: async () => {
+                  throw new Error("chrome.tabs must not be used when browser is available");
+                },
+              },
+              scripting: {
+                executeScript: async () => {
+                  throw new Error("chrome.scripting must not be used when browser is available");
+                },
+              },
+            };
+          } else {
+            window.chrome = extensionApi;
+          }
 
           try {
             Object.defineProperty(window, "close", {
@@ -150,11 +177,14 @@
         }
 
         async function boot() {
-          const scenario = new URLSearchParams(location.search).get("scenario") || "empty";
+          const parameters = new URLSearchParams(location.search);
+          const scenario = parameters.get("scenario") || "empty";
+          const apiName = parameters.get("api") || "chrome";
 
           await loadPopupMarkup();
-          const mock = createChromeMock(scenario);
+          const mock = createExtensionMock(scenario, apiName);
           await loadScript("/lib/shared.js");
+          await loadScript("/lib/browser-api.js");
           await loadScript("/popup/popup.js");
           await sleep(80);
 
@@ -208,6 +238,20 @@
             await test("starts disabled with an empty passage", async () => {
               assert(await waitFor(() => startButton(), "the start button"), "Start button missing");
               assert(startButton().disabled, "Start should be disabled before a passage is entered");
+            });
+
+            await test("uses autotype copy and a warning", async () => {
+              const tagline = document.querySelector(".brand-tagline").textContent;
+              const label = document.querySelector('label[for="passage"]').textContent.trim();
+              const hint = document.querySelector(".field-hint").textContent;
+              const footer = document.querySelector(".app-footer").textContent;
+
+              assert(tagline.includes("Types passages into Google Docs"), `Unexpected tagline: ${tagline}`);
+              assertEqual(label, "Passage");
+              assert(hint.includes("How fast DocuType types"), `Unexpected speed hint: ${hint}`);
+              assertEqual(startLabel().textContent.trim(), "Start typing");
+              assert(footer.includes("inserts the passage"), `Unexpected footer: ${footer}`);
+              assert(footer.includes("outside help is allowed"), `Unexpected footer: ${footer}`);
             });
 
             await test("treats whitespace-only text as empty", async () => {
@@ -268,7 +312,7 @@
             return records;
           }
 
-          if (scenario === "success") {
+          if (scenario === "success" || scenario === "firefox-success") {
             await test("injects the content modules in order", async () => {
               await waitFor(() => startButton(), "the start button");
               setPassage("  Line one\r\nLine two  ");
@@ -306,7 +350,7 @@
               await waitFor(() => !formError().hidden, "the error message");
 
               assert(/reload|blocked/i.test(formError().textContent), `Unexpected error copy: ${formError().textContent}`);
-              assertEqual(startLabel().textContent.trim(), "Start practice session");
+              assertEqual(startLabel().textContent.trim(), "Start typing");
               assert(!startButton().disabled, "Start should be usable again after an error");
               assertEqual(mock.calls.messages.length, 0, "No start message should be sent");
               assertEqual(mock.calls.closes, 0, "The popup must stay open after an error");
@@ -328,6 +372,48 @@
               );
               assert(!startButton().disabled, "Start should be usable again after a content error");
               assertEqual(mock.calls.closes, 0, "The popup must stay open after a content error");
+            });
+
+            return records;
+          }
+
+          if (scenario === "editor-error") {
+            await test("explains that the document editor was not found", async () => {
+              await waitFor(() => startButton(), "the start button");
+              setPassage("Hello");
+              submit();
+              await waitFor(() => !formError().hidden, "the error message");
+
+              assert(
+                /find the document editor/i.test(formError().textContent),
+                `Unexpected error copy: ${formError().textContent}`
+              );
+              assert(
+                /click into the document/i.test(formError().textContent),
+                `Unexpected recovery copy: ${formError().textContent}`
+              );
+              assertEqual(mock.calls.closes, 0);
+            });
+
+            return records;
+          }
+
+          if (scenario === "paste-error") {
+            await test("explains that the document rejected the text", async () => {
+              await waitFor(() => startButton(), "the start button");
+              setPassage("Hello");
+              submit();
+              await waitFor(() => !formError().hidden, "the error message");
+
+              assert(
+                /rejected the text/i.test(formError().textContent),
+                `Unexpected error copy: ${formError().textContent}`
+              );
+              assert(
+                /editable/i.test(formError().textContent),
+                `Unexpected recovery copy: ${formError().textContent}`
+              );
+              assertEqual(mock.calls.closes, 0);
             });
 
             return records;

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "DocuType",
   "version": "1.0.0",
-  "description": "Guided typing practice for Google Docs. DocuType reveals a passage; you type it yourself.",
+  "description": "Types a passage into Google Docs at a chosen pace.",
   "minimum_chrome_version": "105",
   "permissions": ["activeTab", "scripting"],
   "browser_specific_settings": {
@@ -15,7 +15,7 @@
     }
   },
   "action": {
-    "default_title": "DocuType — guided typing practice",
+    "default_title": "DocuType — autotype for Google Docs",
     "default_popup": "popup/popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
