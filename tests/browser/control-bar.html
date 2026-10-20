@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DocuType control bar harness</title>
+    <style>
+      body {
+        margin: 0;
+        background: #f6f8fa;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      }
+
+      #results {
+        position: fixed;
+        inset: 0;
+        margin: 0;
+        padding: 18px 22px;
+        overflow: auto;
+        background: #111418;
+        color: #d9f2df;
+        font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
+        white-space: pre-wrap;
+        z-index: 10;
+      }
+
+      #results.failed {
+        color: #ffc9bd;
+      }
+    </style>
+  </head>
+  <body>
+    <pre id="results">BROWSER TESTS NOT RUN</pre>
+
+    <script src="/content/control-bar-styles.js"></script>
+    <script src="/content/control-bar.js"></script>
+    <script>
+      (() => {
+        "use strict";
+
+        const ControlBar = window.DocuType && window.DocuType.ControlBar;
+        const resultsElement = document.getElementById("results");
+        const tests = [];
+
+        function addTest(name, run) {
+          tests.push({ name, run });
+        }
+
+        function assert(condition, message) {
+          if (!condition) {
+            throw new Error(message || "Assertion failed");
+          }
+        }
+
+        function assertEqual(actual, expected, message) {
+          if (actual !== expected) {
+            throw new Error(
+              message || `Expected ${JSON.stringify(expected)}, received ${JSON.stringify(actual)}`
+            );
+          }
+        }
+
+        function createBar(overrides = {}) {
+          const calls = { pause: 0, resume: 0, stop: 0 };
+          const bar = new ControlBar({
+            total: 100,
+            wpm: 45,
+            onPause: () => {
+              calls.pause += 1;
+            },
+            onResume: () => {
+              calls.resume += 1;
+            },
+            onStop: () => {
+              calls.stop += 1;
+            },
+            ...overrides,
+          });
+
+          return { bar, calls };
+        }
+
+        function resetPage() {
+          document.querySelectorAll("#docutype-root").forEach((node) => node.remove());
+          document.body.style.backgroundColor = "";
+        }
+
+        function barParts(bar) {
+          const shadow = bar.element.shadowRoot;
+          return {
+            shadow,
+            panel: shadow.querySelector(".dt-bar"),
+            status: shadow.querySelector('[data-role="status"]'),
+            percent: shadow.querySelector('[data-role="percent"]'),
+            count: shadow.querySelector('[data-role="count"]'),
+            progress: shadow.querySelector('[role="progressbar"]'),
+            pause: shadow.querySelector('[data-action="pause"]'),
+            stop: shadow.querySelector('[data-action="stop"]'),
+            error: shadow.querySelector('[data-role="error"]'),
+          };
+        }
+
+        addTest("mounts one compact bar without the passage", () => {
+          const passage = "This passage must never be rendered in the bar.";
+          const { bar } = createBar({ total: 249, wpm: 45 });
+          try {
+            const parts = barParts(bar);
+            assert(parts.panel, "The bar should render");
+            assertEqual(document.querySelectorAll("#docutype-root").length, 1);
+            assertEqual(parts.status.textContent, "Starting…");
+            assertEqual(parts.count.textContent, "0 / 249 characters");
+            assert(parts.shadow.textContent.includes("DocuType"));
+            assert(parts.shadow.textContent.includes("45 WPM"));
+            assert(!parts.shadow.textContent.includes(passage), "The passage must not be in the bar");
+            assertEqual(parts.shadow.querySelector("textarea"), null);
+          } finally {
+            bar.destroy();
+            resetPage();
+          }
+        });
+
+        addTest("renders approximate progress and updates the accessible value", () => {
+          const { bar } = createBar();
+          try {
+            const parts = barParts(bar);
+            bar.setProgress(42, 100);
+            assertEqual(parts.percent.textContent, "≈ 42%");
+            assertEqual(parts.count.textContent, "42 / 100 characters");
+            assertEqual(parts.progress.getAttribute("aria-valuenow"), "42");
+            assert(parts.progress.getAttribute("aria-valuetext").includes("42 percent"));
+          } finally {
+            bar.destroy();
+            resetPage();
+          }
+        });
+
+        addTest("runs pause, resume, and stop callbacks exactly once", () => {
+          const { bar, calls } = createBar();
+          try {
+            const parts = barParts(bar);
+            bar.setState("running");
+            assertEqual(parts.status.textContent, "Typing");
+            assertEqual(parts.pause.textContent.trim(), "Pause");
+
+            parts.pause.click();
+            assertEqual(calls.pause, 1);
+
+            bar.setState("paused");
+            assertEqual(parts.status.textContent, "Paused");
+            assertEqual(parts.pause.textContent.trim(), "Resume");
+
+            parts.pause.click();
+            assertEqual(calls.resume, 1);
+
+            parts.stop.click();
+            assertEqual(calls.stop, 1);
+            assertEqual(document.querySelectorAll("#docutype-root").length, 0);
+
+            bar.destroy();
+            assertEqual(calls.stop, 1, "destroy must not fire onStop again");
+          } finally {
+            resetPage();
+          }
+        });
+
+        addTest("shows completion and disables pause", () => {
+          const { bar } = createBar();
+          try {
+            const parts = barParts(bar);
+            bar.setState("running");
+            bar.setProgress(37, 100);
+            bar.setState("complete");
+            assertEqual(parts.status.textContent, "Complete");
+            assertEqual(parts.percent.textContent, "100%");
+            assertEqual(parts.count.textContent, "100 / 100 characters");
+            assertEqual(parts.pause.disabled, true);
+            assertEqual(parts.pause.textContent.trim(), "Complete");
+          } finally {
+            bar.destroy();
+            resetPage();
+          }
+        });
+
+        addTest("shows an insertion error and stops offering pause", () => {
+          const { bar } = createBar();
+          try {
+            const parts = barParts(bar);
+            bar.setState("running");
+            bar.setError("Google Docs rejected the text.");
+            assertEqual(parts.panel.dataset.state, "error");
+            assertEqual(parts.status.textContent, "Couldn't type");
+            assertEqual(parts.error.hidden, false);
+            assert(parts.error.textContent.includes("rejected the text"));
+            assertEqual(parts.pause.disabled, true);
+          } finally {
+            bar.destroy();
+            resetPage();
+          }
+        });
+
+        addTest("follows the page theme", () => {
+          document.body.style.backgroundColor = "#141414";
+          const dark = createBar();
+          try {
+            assertEqual(barParts(dark.bar).panel.dataset.theme, "dark");
+          } finally {
+            dark.bar.destroy();
+            resetPage();
+          }
+
+          document.body.style.backgroundColor = "#ffffff";
+          const light = createBar();
+          try {
+            assertEqual(barParts(light.bar).panel.dataset.theme, "light");
+          } finally {
+            light.bar.destroy();
+            resetPage();
+          }
+        });
+
+        async function finish(records) {
+          const failed = records.filter((record) => !record.ok);
+          const lines = records.map((record) =>
+            record.ok ? `✔ ${record.name}` : `✖ ${record.name}\n  ${record.error}`
+          );
+
+          resultsElement.classList.toggle("failed", failed.length > 0);
+          resultsElement.textContent = `${lines.join("\n")}\n\n${
+            failed.length ? "BROWSER TESTS FAILED" : "BROWSER TESTS PASSED"
+          }`;
+          resultsElement.setAttribute("data-status", failed.length ? "failed" : "passed");
+        }
+
+        async function main() {
+          const records = [];
+          for (const testCase of tests) {
+            try {
+              await testCase.run();
+              records.push({ name: testCase.name, ok: true });
+            } catch (error) {
+              records.push({
+                name: testCase.name,
+                ok: false,
+                error: error && error.stack ? error.stack : String(error),
+              });
+            }
+          }
+
+          await finish(records);
+        }
+
+        main().catch(async (error) => {
+          await finish([
+            {
+              name: "control bar harness completed",
+              ok: false,
+              error: error && error.stack ? error.stack : String(error),
+            },
+          ]);
+        });
+      })();
+    </script>
+  </body>
+</html>
