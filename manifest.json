@@ -5,6 +5,15 @@
   "description": "Guided typing practice for Google Docs. DocuType reveals a passage; you type it yourself.",
   "minimum_chrome_version": "105",
   "permissions": ["activeTab", "scripting"],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "docutype@mrduhlol.github.io",
+      "strict_min_version": "109.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  },
   "action": {
     "default_title": "DocuType — guided typing practice",
     "default_popup": "popup/popup.html",
