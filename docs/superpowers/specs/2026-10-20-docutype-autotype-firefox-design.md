@@ -1,8 +1,9 @@
 # DocuType Autotype + Firefox — Design
 
 **Date:** 2026-10-20
-**Status:** Approved in session. Supersedes the "guided typing practice" behavior in
-`2026-10-19-docutype-design.md`.
+**Status:** Implemented. Supersedes the "guided typing practice" behavior in
+`2026-10-19-docutype-design.md`. Automated tests are green; live Docs and real
+Firefox smoke tests remain environment-dependent.
 
 ## Intent
 

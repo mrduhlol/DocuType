@@ -1,6 +1,6 @@
 # DocuType Autotype + Firefox Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Change DocuType from a prompt-only practice panel into a cross-browser extension that types the passage directly into the Google Docs editor at the selected pace, with a compact pause/stop bar.
 
@@ -9,6 +9,8 @@
 **Tech Stack:** Chrome MV3 / Firefox MV3, vanilla HTML/CSS/JavaScript (classic scripts), Node 20+ built-in test runner, headless Chromium for browser harnesses.
 
 **Spec:** `docs/superpowers/specs/2026-10-20-docutype-autotype-firefox-design.md`
+
+**Status:** Implemented. Automated unit, syntax, and headless-browser checks are green. Live Google Docs insertion and a real Firefox install still need a manual smoke test on a machine with both.
 
 ## Global Constraints
 
@@ -43,7 +45,7 @@
 - Produces: `DocuType.browserApi.getExtensionApi(root) -> object | null`, preferring `root.browser` and falling back to `root.chrome`.
 - Produces manifest metadata: `browser_specific_settings.gecko.id = "docutype@mrduhlol.github.io"`, `strict_min_version = "109.0"`, `data_collection_permissions.required = ["none"]`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```js
 const test = require("node:test");
@@ -65,21 +67,21 @@ test("falls back to chrome", () => {
 
 Manifest assertions: parse `manifest.json`; assert `manifest_version === 3`, permissions exactly `["activeTab", "scripting"]`, no `host_permissions`, no `background`, gecko ID/min version/data collection as above, and every icon path exists.
 
-- [ ] **Step 2: Run the failing tests**
+- [x] **Step 2: Run the failing tests**
 
 Run: `node --test tests/browser-api.test.js tests/manifest.test.js`
 Expected: FAIL because `lib/browser-api.js` does not exist and the manifest has no Firefox settings.
 
-- [ ] **Step 3: Implement the helper and manifest settings**
+- [x] **Step 3: Implement the helper and manifest settings**
 
 Use the same UMD pattern as `lib/shared.js`. Export a frozen `{ getExtensionApi }`. Add the Gecko settings above; keep `minimum_chrome_version` and the existing Chrome keys.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run: `node --test tests/browser-api.test.js tests/manifest.test.js`
 Expected: PASS.
 
-- [ ] **Step 5: Commit and push**
+- [x] **Step 5: Commit and push**
 
 ```bash
 git add lib/browser-api.js tests/browser-api.test.js tests/manifest.test.js manifest.json
@@ -109,11 +111,11 @@ git push
   - Non-ASCII code points dispatch a paste with `<span>escaped</span>` + `text/plain`; a rejected paste is an error.
   - Build events with `editor.ownerDocument.defaultView` constructors; define `clipboardData`, `keyCode`, `which`, or `charCode` on the event if the constructor drops them.
 
-- [ ] **Step 1: Write the failing Node tests**
+- [x] **Step 1: Write the failing Node tests**
 
 Test `escapeHtml("&<>\"'")`, space/enter/tab descriptors, and `null` for `"a"` and `"🙂"`.
 
-- [ ] **Step 2: Write the failing browser harness**
+- [x] **Step 2: Write the failing browser harness**
 
 In `tests/browser/docs-input.html`, create a same-origin iframe with class `docs-texteventtarget-iframe` and a contenteditable. Its mock listeners append pasted plain text and Space/Enter keys to the editor. Assert:
 
@@ -127,7 +129,7 @@ In `tests/browser/docs-input.html`, create a same-origin iframe with class `docs
 
 Add `{ path: "tests/browser/docs-input.html" }` to `PAGE_SPECS`.
 
-- [ ] **Step 3: Run and verify failure**
+- [x] **Step 3: Run and verify failure**
 
 Run: `node --test tests/docs-input.test.js`
 Expected: FAIL because the module is missing.
@@ -135,16 +137,16 @@ Expected: FAIL because the module is missing.
 Run: `npm run test:browser`
 Expected: the new harness fails because `docs-input.js` is missing.
 
-- [ ] **Step 4: Implement the module and harness**
+- [x] **Step 4: Implement the module and harness**
 
 Keep the UMD wrapper so Node can require it. In `insertUnit`, return the error object instead of throwing; callers decide how to stop.
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run: `node --test tests/docs-input.test.js` and `npm run test:browser`
 Expected: PASS.
 
-- [ ] **Step 6: Commit and push**
+- [x] **Step 6: Commit and push**
 
 ```bash
 git add content/docs-input.js tests/docs-input.test.js tests/browser/docs-input.html tests/run-browser-tests.mjs
@@ -169,27 +171,27 @@ git push
 - Produces: `bar.setProgress(index, total)`, `bar.setError(message)`, `bar.destroy()`, `bar.element`
 - UI: one `#docutype-root` with Shadow DOM; status text; progressbar; Pause/Resume; Stop. No passage text and no Restart.
 
-- [ ] **Step 1: Write the failing browser harness**
+- [x] **Step 1: Write the failing browser harness**
 
 Assert one bar mounts, status and progress render, the passage string never appears in the shadow tree, Pause calls `onPause` while running, `setState("paused")` switches the button to Resume and calls `onResume`, Stop calls `onStop` and removes the bar, `destroy()` is idempotent, and light/dark page backgrounds select the matching `data-theme`.
 
 Add the harness to `PAGE_SPECS`.
 
-- [ ] **Step 2: Run and verify failure**
+- [x] **Step 2: Run and verify failure**
 
 Run: `npm run test:browser`
 Expected: FAIL because `DocuType.ControlBar` is missing.
 
-- [ ] **Step 3: Implement styles and bar**
+- [x] **Step 3: Implement styles and bar**
 
 Use a fixed bottom-right card roughly 320–360px wide, Shadow DOM isolation, light/dark tokens, and `prefers-reduced-motion`. Reuse the existing brand SVG and theme detection logic from `panel.js`. Keep copy short: status, `≈ N%`, `N / total characters`, Pause/Resume, Stop.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run: `npm run test:browser`
 Expected: PASS.
 
-- [ ] **Step 5: Commit and push**
+- [x] **Step 5: Commit and push**
 
 ```bash
 git add content/control-bar-styles.js content/control-bar.js tests/browser/control-bar.html tests/run-browser-tests.mjs
@@ -213,7 +215,7 @@ git push
 - Produces: message responses `{ ok: true }` or `{ ok: false, code }` with `NOT_DOCS`, `EMPTY_TEXT`, `TEXT_TOO_LONG`, `EDITOR_NOT_FOUND`, `START_FAILED`.
 - Session behavior: validate input and editor before destroying the previous session; create the bar; start the engine with `initialDelayMs: 1200`; on reveal call `insertUnit`; update progress; on insertion failure stop the engine and call `bar.setError`; on complete show `100%`; Stop destroys both.
 
-- [ ] **Step 1: Rewrite the content harness**
+- [x] **Step 1: Rewrite the content harness**
 
 Add a mock Docs iframe with a contenteditable and paste/key listeners that append text. Test:
 
@@ -227,25 +229,25 @@ Add a mock Docs iframe with a contenteditable and paste/key listeners that appen
 
 Remove the old `panel.html` scenario from `PAGE_SPECS`.
 
-- [ ] **Step 2: Run and verify failure**
+- [x] **Step 2: Run and verify failure**
 
 Run: `npm run test:browser`
 Expected: content tests fail because `content.js` still mounts the old panel.
 
-- [ ] **Step 3: Implement the session wiring**
+- [x] **Step 3: Implement the session wiring**
 
 Follow the interfaces above. Keep the duplicate-injection guard. Ensure the editor check happens before replacing a running session. Map insertion errors to the bar's error state; the initial response remains `{ ok: true }` once typing begins.
 
-- [ ] **Step 4: Update syntax checks**
+- [x] **Step 4: Update syntax checks**
 
 Change `npm run check` to cover `lib/browser-api.js`, `content/docs-input.js`, `content/control-bar-styles.js`, and `content/control-bar.js`, and remove the deleted panel files.
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run: `npm test && npm run check && npm run test:browser`
 Expected: PASS.
 
-- [ ] **Step 6: Commit and push**
+- [x] **Step 6: Commit and push**
 
 ```bash
 git add content/content.js tests/browser/content.html tests/run-browser-tests.mjs package.json
@@ -272,7 +274,7 @@ git push
 - Produces: error copy for `EDITOR_NOT_FOUND`, `PASTE_REJECTED`, `TYPE_FAILED`.
 - Produces: Firefox test scenario using only `window.browser` with promise-returning APIs.
 
-- [ ] **Step 1: Update the failing popup assertions**
+- [x] **Step 1: Update the failing popup assertions**
 
 Replace practice copy with autotype copy. Assert:
 
@@ -281,12 +283,12 @@ Replace practice copy with autotype copy. Assert:
 - `EDITOR_NOT_FOUND` and `PASTE_REJECTED` surface their specific messages.
 - A new `firefox-success` scenario, with no `window.chrome` and a `window.browser` mock, injects, sends, and closes successfully.
 
-- [ ] **Step 2: Run and verify failure**
+- [x] **Step 2: Run and verify failure**
 
 Run: `npm run test:browser`
 Expected: popup tests fail on the old file list/copy and missing Firefox scenario.
 
-- [ ] **Step 3: Implement popup changes**
+- [x] **Step 3: Implement popup changes**
 
 Load `../lib/browser-api.js` before `popup.js`; use the selected API for `tabs.query`, `scripting.executeScript`, and `tabs.sendMessage`. Update:
 
@@ -296,12 +298,12 @@ Load `../lib/browser-api.js` before `popup.js`; use the selected API for `tabs.q
 - Footer: “Nothing is uploaded or saved. The passage stays in your browser.” and “DocuType inserts the passage into your document. Use only where outside help is allowed.”
 - Manifest description: “Types a passage into Google Docs at a chosen pace.”
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run: `npm test && npm run check && npm run test:browser`
 Expected: PASS.
 
-- [ ] **Step 5: Commit and push**
+- [x] **Step 5: Commit and push**
 
 ```bash
 git add popup/popup.html popup/popup.js popup/popup.css tests/browser/popup.html tests/browser/popup-frame.html manifest.json
@@ -318,7 +320,7 @@ git push
 - Modify: `docs/superpowers/plans/2026-10-20-docutype-autotype-firefox.md` (check boxes only)
 - Modify: `docs/superpowers/specs/2026-10-20-docutype-autotype-firefox-design.md` (status only if needed)
 
-- [ ] **Step 1: Rewrite README**
+- [x] **Step 1: Rewrite README**
 
 Cover:
 
@@ -332,7 +334,7 @@ Cover:
 - Responsible use: autotyping may violate assessment/workplace rules; use only where permitted; not a record of manual typing.
 - Tests and project layout.
 
-- [ ] **Step 2: Run the full verification**
+- [x] **Step 2: Run the full verification**
 
 Run: `npm test && npm run check && npm run test:browser`
 Expected: all green.
@@ -342,15 +344,15 @@ Expected: no matches.
 
 Parse `manifest.json`, verify permissions and icon dimensions (16/32/48/128).
 
-- [ ] **Step 3: Visual QA**
+- [x] **Step 3: Visual QA**
 
 Capture popup light/dark and control-bar light/dark screenshots with the static harness. Confirm the bar contains no passage and fits without clipping.
 
-- [ ] **Step 4: Manual smoke test note**
+- [x] **Step 4: Manual smoke test note**
 
 Document that live Docs insertion must be tested in a scratch document in both browsers; the headless harness only models the input surface.
 
-- [ ] **Step 5: Commit and push**
+- [x] **Step 5: Commit and push**
 
 ```bash
 git add README.md docs/superpowers/plans/2026-10-20-docutype-autotype-firefox.md

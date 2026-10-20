@@ -363,7 +363,7 @@ body {
 
 .field-hint {
   margin: 0;
-  color: var(--faint);
+  color: var(--muted);
   font-size: 10.5px;
   line-height: 1.4;
 }
@@ -419,9 +419,12 @@ body {
 }
 
 .start-button:disabled {
-  cursor: default;
-  opacity: 0.48;
+  color: var(--muted);
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
   box-shadow: none;
+  cursor: default;
+  opacity: 1;
 }
 
 .start-icon {
@@ -461,7 +464,7 @@ body {
 }
 
 .footer-note--warning {
-  color: var(--faint);
+  color: var(--muted);
 }
 
 .footer-icon {

@@ -221,7 +221,7 @@
   min-width: 0;
   align-items: baseline;
   gap: 7px;
-  color: var(--dt-faint);
+  color: var(--dt-muted);
   font-size: 9.5px;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.008em;
