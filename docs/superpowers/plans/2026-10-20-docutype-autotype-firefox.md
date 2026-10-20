@@ -105,8 +105,8 @@ git push
   - Finds `iframe.docs-texteventtarget-iframe`, then its `contentDocument`'s `[contenteditable="true"]`.
 - Produces: `DocuType.docsInput.insertUnit(editor, char) -> { ok: true } | { ok: false, code, message }`
   - `code` is `EDITOR_NOT_FOUND` or `PASTE_REJECTED`.
-  - Non-whitespace code points dispatch a paste with `<span>escaped</span>` + `text/plain`.
-  - Whitespace dispatches a keydown/keypress/keyup triple. Tabs become spaces.
+  - Printable ASCII, space, tab, and Enter dispatch a keydown/keypress/keyup triple with real key codes; tabs become spaces.
+  - Non-ASCII code points dispatch a paste with `<span>escaped</span>` + `text/plain`; a rejected paste is an error.
   - Build events with `editor.ownerDocument.defaultView` constructors; define `clipboardData`, `keyCode`, `which`, or `charCode` on the event if the constructor drops them.
 
 - [ ] **Step 1: Write the failing Node tests**
@@ -118,7 +118,8 @@ Test `escapeHtml("&<>\"'")`, space/enter/tab descriptors, and `null` for `"a"` a
 In `tests/browser/docs-input.html`, create a same-origin iframe with class `docs-texteventtarget-iframe` and a contenteditable. Its mock listeners append pasted plain text and Space/Enter keys to the editor. Assert:
 
 - `findEditor(document)` returns the editor.
-- Pasting `"a"` inserts `"a"`, and `insertUnit` returns `ok`.
+- `getKeyDescriptor` maps letters, digits, punctuation, space, tab, and Enter; returns `null` for non-ASCII.
+- Typing `"a"` inserts `"a"`, and `insertUnit` returns `ok`.
 - Space and newline append `" "` and `"\n"`; tab inserts `" "`.
 - `"🙂"` is one paste and one code point.
 - A paste listener that does not call `preventDefault()` returns `PASTE_REJECTED`.

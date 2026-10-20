@@ -48,9 +48,10 @@ without a build step.
    buttons. It never displays the passage.
 5. After a short "Starting…" delay, the extension inserts one Unicode code point
    at a time using the existing pacing engine.
-6. Letters and punctuation are inserted as inline HTML paste events so Docs
-   accepts them and the extension can detect rejection. Spaces, tabs, and line
-   breaks use synthetic key events so they remain real document whitespace.
+6. Printable ASCII characters, spaces, tabs, and line breaks use synthetic key
+   events, matching a person typing. Non-ASCII code points (accented letters,
+   curly quotes, CJK, emoji) use inline HTML paste events so Docs receives them
+   exactly and the extension can detect rejection. Tabs become spaces.
 7. Pause freezes insertion; Resume continues from the next code point. Stop ends
    the session and removes the bar. Text already inserted stays in the document.
 8. Completion is shown in the bar; the user closes the bar with Stop.
@@ -65,11 +66,12 @@ Docs has no supported extension insertion API. The extension drives the same
 hidden input surface Docs uses for keyboard input:
 
 - Locate `iframe.docs-texteventtarget-iframe` and its contenteditable body.
-- For non-whitespace code points, dispatch a synthetic `paste` ClipboardEvent
-  carrying `text/html` (`<span>escaped character</span>`) and `text/plain`.
-  A consumed paste calls `preventDefault`; an ignored paste is an error.
-- For `\n`, dispatch Enter keydown/keypress/keyup. For `" "` and `\t`, dispatch
-  Space key events (`\t` becomes a space). Key events are live-verified for Docs.
+- Printable ASCII characters dispatch a keydown/keypress/keyup triple using real
+  keyboard codes. This is the live-verified typing path for Docs. `\n` uses
+  Enter; `" "` and `\t` use Space (`\t` becomes a space).
+- Non-ASCII code points dispatch a synthetic `paste` ClipboardEvent carrying
+  `text/html` (`<span>escaped character</span>`) and `text/plain`. A consumed
+  paste calls `preventDefault`; an ignored paste is an error.
 - Build events with the iframe's own `defaultView` constructors to avoid
   cross-realm object problems.
 - Keep the typing engine's timer and pacing; its reveal callback now inserts a

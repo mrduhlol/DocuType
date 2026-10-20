@@ -17,6 +17,7 @@ const PAGE_SPECS = process.argv.slice(2).length
   ? process.argv.slice(2).map((entry) => ({ path: entry, label: entry }))
   : [
       { path: "tests/browser/panel.html", label: "tests/browser/panel.html" },
+      { path: "tests/browser/docs-input.html", label: "tests/browser/docs-input.html" },
       { path: "tests/browser/popup.html", label: "tests/browser/popup.html" },
       { path: "tests/browser/content.html", label: "tests/browser/content.html (non-Docs page)" },
       {

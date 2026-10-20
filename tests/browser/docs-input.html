@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DocuType Docs input harness</title>
+    <style>
+      body {
+        margin: 0;
+        background: #f6f8fa;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      }
+
+      #results {
+        position: fixed;
+        inset: 0;
+        margin: 0;
+        padding: 18px 22px;
+        overflow: auto;
+        background: #111418;
+        color: #d9f2df;
+        font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
+        white-space: pre-wrap;
+        z-index: 10;
+      }
+
+      #results.failed {
+        color: #ffc9bd;
+      }
+    </style>
+  </head>
+  <body>
+    <pre id="results">BROWSER TESTS NOT RUN</pre>
+
+    <script src="/content/docs-input.js"></script>
+    <script>
+      (() => {
+        "use strict";
+
+        const docsInput = window.DocuType && window.DocuType.docsInput;
+        const resultsElement = document.getElementById("results");
+        const tests = [];
+
+        function addTest(name, run) {
+          tests.push({ name, run });
+        }
+
+        function assert(condition, message) {
+          if (!condition) {
+            throw new Error(message || "Assertion failed");
+          }
+        }
+
+        function assertEqual(actual, expected, message) {
+          if (actual !== expected) {
+            throw new Error(
+              message || `Expected ${JSON.stringify(expected)}, received ${JSON.stringify(actual)}`
+            );
+          }
+        }
+
+        function createMockDocs(options = {}) {
+          const frame = document.createElement("iframe");
+          frame.className = "docs-texteventtarget-iframe";
+          frame.style.width = "1px";
+          frame.style.height = "1px";
+          document.body.appendChild(frame);
+
+          const frameDocument = frame.contentDocument;
+          frameDocument.body.innerHTML = '<div contenteditable="true"></div>';
+          const editor = frameDocument.querySelector('[contenteditable="true"]');
+
+          let text = "";
+          let acceptPaste = options.acceptPaste !== false;
+          let lastPasteHtml = null;
+
+          editor.addEventListener("paste", (event) => {
+            if (!acceptPaste) {
+              return;
+            }
+
+            event.preventDefault();
+            lastPasteHtml = event.clipboardData
+              ? event.clipboardData.getData("text/html")
+              : null;
+            text += event.clipboardData
+              ? event.clipboardData.getData("text/plain")
+              : "";
+          });
+
+          editor.addEventListener("keypress", (event) => {
+            if (event.key === "Enter" || event.charCode === 13) {
+              text += "\n";
+            } else if (event.key === " " || event.charCode === 32) {
+              text += " ";
+            } else if (event.charCode) {
+              text += String.fromCharCode(event.charCode);
+            }
+          });
+
+          return {
+            frame,
+            editor,
+            getText: () => text,
+            getLastPasteHtml: () => lastPasteHtml,
+            setAcceptPaste: (value) => {
+              acceptPaste = value;
+            },
+          };
+        }
+
+        function typeUnits(editor, units) {
+          for (const unit of units) {
+            const result = docsInput.insertUnit(editor, unit);
+            assertEqual(result.ok, true, `insertUnit(${JSON.stringify(unit)}) should succeed`);
+          }
+        }
+
+        addTest("finds the hidden Docs contenteditable", () => {
+          const mock = createMockDocs();
+          try {
+            assertEqual(docsInput.findEditor(document), mock.editor);
+          } finally {
+            mock.frame.remove();
+          }
+        });
+
+        addTest("types ASCII characters through key events", () => {
+          const mock = createMockDocs();
+          try {
+            typeUnits(mock.editor, ["H", "i", "!", "7", " "]);
+            assertEqual(mock.getText(), "Hi!7 ");
+          } finally {
+            mock.frame.remove();
+          }
+        });
+
+        addTest("turns tabs into spaces and sends a real newline", () => {
+          const mock = createMockDocs();
+          try {
+            typeUnits(mock.editor, ["a", "\t", "b", "\n", "c"]);
+            assertEqual(mock.getText(), "a b\nc");
+          } finally {
+            mock.frame.remove();
+          }
+        });
+
+        addTest("pastes non-ASCII code points as inline HTML", () => {
+          const mock = createMockDocs();
+          try {
+            const result = docsInput.insertUnit(mock.editor, "🙂");
+            assertEqual(result.ok, true);
+            assertEqual(mock.getText(), "🙂");
+            assertEqual(mock.getLastPasteHtml(), "<span>🙂</span>");
+          } finally {
+            mock.frame.remove();
+          }
+        });
+
+        addTest("reports a rejected paste", () => {
+          const mock = createMockDocs({ acceptPaste: false });
+          try {
+            const result = docsInput.insertUnit(mock.editor, "é");
+            assertEqual(result.ok, false);
+            assertEqual(result.code, "PASTE_REJECTED");
+            assertEqual(mock.getText(), "");
+          } finally {
+            mock.frame.remove();
+          }
+        });
+
+        addTest("reports a missing editor", () => {
+          const result = docsInput.insertUnit(null, "a");
+          assertEqual(result.ok, false);
+          assertEqual(result.code, "EDITOR_NOT_FOUND");
+        });
+
+        addTest("does not find an editor after the frame is removed", () => {
+          const mock = createMockDocs();
+          mock.frame.remove();
+          assertEqual(docsInput.findEditor(document), null);
+        });
+
+        async function finish(records) {
+          const failed = records.filter((record) => !record.ok);
+          const lines = records.map((record) =>
+            record.ok ? `✔ ${record.name}` : `✖ ${record.name}\n  ${record.error}`
+          );
+
+          resultsElement.classList.toggle("failed", failed.length > 0);
+          resultsElement.textContent = `${lines.join("\n")}\n\n${
+            failed.length ? "BROWSER TESTS FAILED" : "BROWSER TESTS PASSED"
+          }`;
+          resultsElement.setAttribute("data-status", failed.length ? "failed" : "passed");
+        }
+
+        async function main() {
+          const records = [];
+          for (const testCase of tests) {
+            try {
+              await testCase.run();
+              records.push({ name: testCase.name, ok: true });
+            } catch (error) {
+              records.push({
+                name: testCase.name,
+                ok: false,
+                error: error && error.stack ? error.stack : String(error),
+              });
+            }
+          }
+
+          await finish(records);
+        }
+
+        main().catch(async (error) => {
+          await finish([
+            {
+              name: "docs input harness completed",
+              ok: false,
+              error: error && error.stack ? error.stack : String(error),
+            },
+          ]);
+        });
+      })();
+    </script>
+  </body>
+</html>
