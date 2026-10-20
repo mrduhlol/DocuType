@@ -120,6 +120,22 @@
       return this._characters.length;
     }
 
+    setWpm(value) {
+      if (this._destroyed || this._state === "stopped" || this._state === "complete") {
+        return false;
+      }
+
+      this._wpm = normalizeWpm(value);
+      if (this._state === "running" && this._timer !== null) {
+        this._clearTimer();
+        const delay = this._index === 0
+          ? this._initialDelayMs
+          : computeCharDelay(this._characters[this._index - 1], this._wpm, this._random);
+        this._schedule(delay);
+      }
+      return true;
+    }
+
     start() {
       if (this._destroyed || this._state !== "idle") {
         return false;

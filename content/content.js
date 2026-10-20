@@ -80,6 +80,11 @@
             engine.resume();
           }
         },
+        onSpeedChange(nextWpm) {
+          if (engine && engine.setWpm(nextWpm)) {
+            bar.setSpeed(nextWpm);
+          }
+        },
         onStop: destroySession,
       });
 

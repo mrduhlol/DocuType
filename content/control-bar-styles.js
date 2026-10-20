@@ -234,15 +234,39 @@
   white-space: nowrap;
 }
 
-.dt-speed {
+.dt-speed-control {
+  display: inline-flex;
   flex: none;
+  align-items: center;
+  gap: 4px;
   color: var(--dt-muted);
 }
 
-.dt-speed::before {
-  content: "·";
-  margin-right: 7px;
+.dt-speed-label {
   color: var(--dt-faint);
+}
+
+.dt-speed-select {
+  max-width: 66px;
+  padding: 2px 3px;
+  color: var(--dt-text);
+  background: var(--dt-button-bg);
+  border: 1px solid var(--dt-line);
+  border-radius: 5px;
+  font: inherit;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.dt-speed-select:focus-visible {
+  outline: 2px solid var(--dt-accent);
+  outline-offset: 2px;
+}
+
+.dt-speed-select:disabled {
+  opacity: 0.65;
+  cursor: default;
 }
 
 .dt-controls {

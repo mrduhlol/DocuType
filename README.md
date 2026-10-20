@@ -51,7 +51,7 @@ Mozilla signing is required for permanent installation. Loading the folder tempo
 4. Choose a pace.
 5. Click **Start typing**.
 
-The popup closes and the compact DocuType bar appears in the bottom-right. After a short preparation delay, DocuType inserts the passage one character at a time at the selected pace.
+The popup closes and the compact DocuType bar appears in the bottom-right. After a short preparation delay, DocuType inserts the passage one character at a time at the selected pace. You can change between 30, 45, and 65 WPM using the Speed selector in that bar while a session is running or paused; the new pace applies to the next character.
 
 The passage is never displayed in the DocuType bar. It goes into the document through Google Docs' hidden input surface.
 

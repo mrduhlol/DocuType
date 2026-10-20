@@ -113,6 +113,7 @@
       this._wpm = Math.round(Number(options.wpm)) || 0;
       this._onPause = typeof options.onPause === "function" ? options.onPause : null;
       this._onResume = typeof options.onResume === "function" ? options.onResume : null;
+      this._onSpeedChange = typeof options.onSpeedChange === "function" ? options.onSpeedChange : null;
       this._onStop = typeof options.onStop === "function" ? options.onStop : null;
       this._fixedTheme = normalizeTheme(options.theme);
       this._mediaQuery = null;
@@ -123,6 +124,7 @@
       this._build();
       this._applyTheme(this._fixedTheme || detectPageTheme());
       this._bindEvents();
+      this.setSpeed(this._wpm);
       this.setState("starting");
       this.setProgress(0, this._total);
     }
@@ -151,6 +153,7 @@
         complete || nextState === "stopped" || nextState === "error";
 
       this._pauseButton.disabled = finished;
+      this._speedSelect.disabled = finished;
       this._pauseLabel.textContent = complete ? "Complete" : paused ? "Resume" : "Pause";
       this._pauseIcon.innerHTML = complete ? ICONS.check : paused ? ICONS.play : ICONS.pause;
       this._pauseButton.setAttribute(
@@ -196,6 +199,27 @@
       );
       this._percent.textContent = complete ? "100%" : `≈ ${percent}%`;
       this._count.textContent = `${clampedIndex} / ${totalCount} characters`;
+    }
+
+    setSpeed(wpm) {
+      if (this._destroyed) {
+        return;
+      }
+      this._wpm = Math.round(Number(wpm)) || this._wpm;
+      const supported = Array.from(this._speedSelect.options).some(
+        (option) => option.value === String(this._wpm)
+      );
+      if (!supported && this._speedSelect.options.length > 0) {
+        const currentOption = document.createElement("option");
+        currentOption.value = String(this._wpm);
+        currentOption.textContent = `${this._wpm} WPM`;
+        this._speedSelect.insertBefore(currentOption, this._speedSelect.firstChild);
+      }
+      if (supported) {
+        this._speedSelect.value = String(this._wpm);
+      } else {
+        this._speedSelect.value = String(this._wpm);
+      }
     }
 
     setError(message) {
@@ -266,7 +290,14 @@
           <div class="dt-bottom">
             <div class="dt-meta">
               <span class="dt-count" data-role="count">0 / ${this._total} characters</span>
-              <span class="dt-speed" data-role="speed">${this._wpm} WPM</span>
+              <label class="dt-speed-control">
+                <span class="dt-speed-label">Speed</span>
+                <select class="dt-speed-select" data-role="speed" aria-label="Typing speed">
+                  <option value="30">30 WPM</option>
+                  <option value="45">45 WPM</option>
+                  <option value="65">65 WPM</option>
+                </select>
+              </label>
             </div>
             <div class="dt-controls">
               <button
@@ -302,6 +333,7 @@
       this._progressFill = shadow.querySelector('[data-role="progress-fill"]');
       this._percent = shadow.querySelector('[data-role="percent"]');
       this._count = shadow.querySelector('[data-role="count"]');
+      this._speedSelect = shadow.querySelector('[data-role="speed"]');
       this._pauseButton = shadow.querySelector('[data-action="pause"]');
       this._pauseIcon = shadow.querySelector('[data-role="pause-icon"]');
       this._pauseLabel = shadow.querySelector('[data-role="pause-label"]');
@@ -326,6 +358,18 @@
               this._onPause();
             }
           }
+        },
+        options
+      );
+
+      this._speedSelect.addEventListener(
+        "change",
+        () => {
+          const wpm = Number(this._speedSelect.value);
+          if (this._onSpeedChange) {
+            this._onSpeedChange(wpm);
+          }
+          this.setSpeed(wpm);
         },
         options
       );

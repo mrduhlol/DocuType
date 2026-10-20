@@ -61,7 +61,7 @@
         }
 
         function createBar(overrides = {}) {
-          const calls = { pause: 0, resume: 0, stop: 0 };
+          const calls = { pause: 0, resume: 0, stop: 0, speed: [] };
           const bar = new ControlBar({
             total: 100,
             wpm: 45,
@@ -74,6 +74,7 @@
             onStop: () => {
               calls.stop += 1;
             },
+            onSpeedChange: (wpm) => calls.speed.push(wpm),
             ...overrides,
           });
 
@@ -96,6 +97,7 @@
             progress: shadow.querySelector('[role="progressbar"]'),
             pause: shadow.querySelector('[data-action="pause"]'),
             stop: shadow.querySelector('[data-action="stop"]'),
+            speed: shadow.querySelector('[data-role="speed"]'),
             error: shadow.querySelector('[data-role="error"]'),
           };
         }
@@ -128,6 +130,23 @@
             assertEqual(parts.count.textContent, "42 / 100 characters");
             assertEqual(parts.progress.getAttribute("aria-valuenow"), "42");
             assert(parts.progress.getAttribute("aria-valuetext").includes("42 percent"));
+          } finally {
+            bar.destroy();
+            resetPage();
+          }
+        });
+
+        addTest("changes the live speed from the floating bar", () => {
+          const { bar, calls } = createBar();
+          try {
+            const parts = barParts(bar);
+            assertEqual(parts.speed.value, "45");
+            parts.speed.value = "65";
+            parts.speed.dispatchEvent(new Event("change", { bubbles: true }));
+            assertEqual(calls.speed.length, 1);
+            assertEqual(calls.speed[0], 65);
+            bar.setSpeed(65);
+            assertEqual(parts.speed.value, "65");
           } finally {
             bar.destroy();
             resetPage();

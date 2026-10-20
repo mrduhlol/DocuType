@@ -158,6 +158,25 @@ test("pause freezes the reveal and resume continues from the same point", () => 
   assert.deepEqual(events.revealed[1], { char: "i", index: 2, total: 3 });
 });
 
+test("changing speed reschedules the next character without stacking timers", () => {
+  const { engine, scheduler, events } = createHarness();
+  engine.start();
+  scheduler.runNext();
+  assert.equal(events.revealed.length, 1);
+  assert.equal(scheduler.pending(), 1);
+
+  assert.equal(engine.setWpm(160), true);
+  assert.equal(scheduler.pending(), 1, "the old speed timer must be replaced");
+  scheduler.runNext();
+  assert.equal(events.revealed.length, 2);
+
+  engine.pause();
+  assert.equal(engine.setWpm(30), true);
+  assert.equal(scheduler.pending(), 0, "changing speed while paused must not schedule work");
+  engine.resume();
+  assert.equal(scheduler.pending(), 1);
+});
+
 test("pausing before the first reveal leaves nothing scheduled", () => {
   const { engine, scheduler, events } = createHarness();
 
