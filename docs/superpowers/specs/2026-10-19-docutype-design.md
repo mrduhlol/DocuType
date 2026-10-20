@@ -1,7 +1,10 @@
 # DocuType — Design
 
 **Date:** 2026-10-19
-**Status:** Approved by the product brief supplied in-session.
+**Status:** Superseded on 2026-10-20 by
+[`2026-10-20-docutype-autotype-firefox-design.md`](2026-10-20-docutype-autotype-firefox-design.md).
+The original prompt-only practice behavior described below is retained as design
+history.
 
 ## Intent
 
