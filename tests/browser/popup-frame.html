@@ -12,6 +12,7 @@
         const CHANNEL = "docutype-popup-tests";
         const CONTENT_FILES = [
           "lib/shared.js",
+          "lib/humanize.js",
           "lib/browser-api.js",
           "content/typing-engine.js",
           "content/docs-input.js",
@@ -234,6 +235,12 @@
             radio.checked = true;
           }
 
+          function selectStyle(value) {
+            const radio = document.querySelector(`input[name="style"][value="${value}"]`);
+            assert(radio, `Style radio ${value} is missing`);
+            radio.checked = true;
+          }
+
           if (scenario === "empty") {
             await test("starts disabled with an empty passage", async () => {
               assert(await waitFor(() => startButton(), "the start button"), "Start button missing");
@@ -252,6 +259,14 @@
               assertEqual(startLabel().textContent.trim(), "Start typing");
               assert(footer.includes("inserts the passage"), `Unexpected footer: ${footer}`);
               assert(footer.includes("outside help is allowed"), `Unexpected footer: ${footer}`);
+            });
+
+            await test("offers four writing styles with Small selected", async () => {
+              const radios = document.querySelectorAll('input[name="style"]');
+              assertEqual(radios.length, 4, "Four writing-style options should be offered");
+              const checked = document.querySelector('input[name="style"]:checked');
+              assert(checked, "A writing style should be preselected");
+              assertEqual(checked.value, "1", "Small should be the default style");
             });
 
             await test("treats whitespace-only text as empty", async () => {
@@ -317,6 +332,7 @@
               await waitFor(() => startButton(), "the start button");
               setPassage("  Line one\r\nLine two  ");
               selectSpeed(65);
+              selectStyle(2);
               submit();
               await waitFor(() => mock.calls.closes === 1, "the popup to close");
 
@@ -332,6 +348,7 @@
               assertEqual(message.type, "DOCUTYPE_START_SESSION");
               assertEqual(message.text, "Line one\nLine two");
               assertEqual(message.wpm, 65);
+              assertEqual(message.humanizeLevel, 2);
             });
 
             await test("closes the popup after a successful start", async () => {
