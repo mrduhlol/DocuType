@@ -10,6 +10,7 @@
 
   const CONTENT_FILES = [
     "lib/shared.js",
+    "lib/humanize.js",
     "lib/browser-api.js",
     "content/typing-engine.js",
     "content/docs-input.js",
@@ -19,6 +20,13 @@
   ];
 
   const DEFAULT_SPEED_ID = "steady";
+  const DEFAULT_STYLE_ID = "small";
+  const STYLE_DESCRIPTIONS = Object.freeze({
+    clean: "None",
+    small: "A few",
+    medium: "Some",
+    more: "Lots",
+  });
 
   const CONTENT_ERROR_COPY = {
     NOT_DOCS:
@@ -66,6 +74,7 @@
       passage: document.getElementById("passage"),
       charCount: document.getElementById("charCount"),
       speedOptions: document.getElementById("speedOptions"),
+      styleOptions: document.getElementById("styleOptions"),
       startButton: document.getElementById("startButton"),
       startLabel: document.getElementById("startLabel"),
       startIcon: document.getElementById("startIcon"),
@@ -108,6 +117,43 @@
     }
 
     elements.speedOptions.replaceChildren(fragment);
+  }
+
+  function renderStyleOptions() {
+    const fragment = document.createDocumentFragment();
+
+    for (const style of shared.HUMANIZE_LEVELS) {
+      const option = document.createElement("label");
+      option.className = "speed-option";
+
+      const input = document.createElement("input");
+      input.className = "speed-input";
+      input.type = "radio";
+      input.name = "style";
+      input.value = String(style.value);
+      input.checked = style.id === DEFAULT_STYLE_ID;
+      input.setAttribute(
+        "aria-label",
+        `${style.label} — ${STYLE_DESCRIPTIONS[style.id]} little imperfections`
+      );
+
+      const body = document.createElement("span");
+      body.className = "speed-option-body";
+
+      const name = document.createElement("span");
+      name.className = "speed-name";
+      name.textContent = style.label;
+
+      const description = document.createElement("span");
+      description.className = "speed-wpm";
+      description.textContent = STYLE_DESCRIPTIONS[style.id];
+
+      body.append(name, description);
+      option.append(input, body);
+      fragment.append(option);
+    }
+
+    elements.styleOptions.replaceChildren(fragment);
   }
 
   function updateCharCount() {
@@ -153,6 +199,11 @@
   function getSelectedWpm() {
     const radio = elements.form.querySelector('input[name="wpm"]:checked');
     return shared.clampWpm(radio ? radio.value : undefined);
+  }
+
+  function getSelectedStyle() {
+    const radio = elements.form.querySelector('input[name="style"]:checked');
+    return shared.clampHumanizeLevel(radio ? radio.value : undefined);
   }
 
   async function inspectActiveTab() {
@@ -242,6 +293,7 @@
 
     const tab = state.tab;
     const wpm = getSelectedWpm();
+    const humanizeLevel = getSelectedStyle();
     setInFlight(true);
 
     try {
@@ -251,6 +303,7 @@
         type: shared.START_SESSION_MESSAGE,
         text,
         wpm,
+        humanizeLevel,
       });
 
       if (!response || response.ok !== true) {
@@ -284,6 +337,7 @@
     state.initialized = true;
     cacheElements();
     renderSpeedOptions();
+    renderStyleOptions();
     updateCharCount();
     updateStartState();
     bindEvents();
