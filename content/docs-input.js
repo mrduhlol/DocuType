@@ -21,6 +21,14 @@
     "DocuType couldn't type into this document. Reload the page and try again.";
 
   const SHIFTED_DIGITS = ")!@#$%^&*(";
+  const BACKSPACE_DESCRIPTOR = Object.freeze({
+    key: "Backspace",
+    code: "Backspace",
+    keyCode: 8,
+    which: 8,
+    charCode: 8,
+    shiftKey: false,
+  });
   const PUNCTUATION = Object.freeze({
     ";": [186, false],
     ":": [186, true],
@@ -264,6 +272,48 @@
     }
   }
 
+  function getBackspaceDescriptor() {
+    return BACKSPACE_DESCRIPTOR;
+  }
+
+  // Backspace acts on keydown in Docs. Sending a keypress as well could insert
+  // a control character in some editors, so only down/up are dispatched.
+  function dispatchBackspace(editor) {
+    const view = getEventView(editor);
+    if (!view || typeof view.KeyboardEvent !== "function") {
+      return {
+        ok: false,
+        code: "TYPE_FAILED",
+        message: TYPE_FAILED_MESSAGE,
+      };
+    }
+
+    try {
+      editor.focus();
+      editor.dispatchEvent(createKeyboardEvent(view, "keydown", BACKSPACE_DESCRIPTOR));
+      editor.dispatchEvent(createKeyboardEvent(view, "keyup", BACKSPACE_DESCRIPTOR));
+      return { ok: true };
+    } catch {
+      return {
+        ok: false,
+        code: "TYPE_FAILED",
+        message: TYPE_FAILED_MESSAGE,
+      };
+    }
+  }
+
+  function insertBackspace(editor) {
+    if (!editor || typeof editor.dispatchEvent !== "function") {
+      return {
+        ok: false,
+        code: "EDITOR_NOT_FOUND",
+        message: EDITOR_NOT_FOUND_MESSAGE,
+      };
+    }
+
+    return dispatchBackspace(editor);
+  }
+
   function dispatchPaste(editor, character) {
     const view = getEventView(editor);
     if (
@@ -350,7 +400,9 @@
   return Object.freeze({
     escapeHtml,
     getKeyDescriptor,
+    getBackspaceDescriptor,
     findEditor,
     insertUnit,
+    insertBackspace,
   });
 });
