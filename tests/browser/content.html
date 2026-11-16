@@ -61,6 +61,7 @@
     <pre id="results">BROWSER TESTS NOT RUN</pre>
 
     <script src="/lib/shared.js"></script>
+    <script src="/lib/humanize.js"></script>
     <script src="/lib/browser-api.js"></script>
     <script src="/content/typing-engine.js"></script>
     <script src="/content/docs-input.js"></script>
@@ -125,6 +126,7 @@
         async function loadContentBundle() {
           const files = [
             "/lib/shared.js",
+            "/lib/humanize.js",
             "/lib/browser-api.js",
             "/content/typing-engine.js",
             "/content/docs-input.js",
@@ -164,8 +166,16 @@
           const editor = frameDocument.querySelector('[contenteditable="true"]');
 
           let text = "";
+          let backspaces = 0;
           let acceptPaste = options.acceptPaste !== false;
           let lastPasteHtml = null;
+
+          editor.addEventListener("keydown", (event) => {
+            if (event.key === "Backspace") {
+              backspaces += 1;
+              text = text.slice(0, -1);
+            }
+          });
 
           editor.addEventListener("paste", (event) => {
             if (!acceptPaste) {
@@ -195,6 +205,7 @@
             frame,
             editor,
             getText: () => text,
+            getBackspaces: () => backspaces,
             getLastPasteHtml: () => lastPasteHtml,
             setAcceptPaste: (value) => {
               acceptPaste = value;
@@ -301,6 +312,35 @@
             assertEqual(parts.status.textContent, "Complete");
             assertEqual(parts.percent.textContent, "100%");
             assertEqual(docs.getText(), passage);
+          });
+
+          addTest("self-corrections backspace typos and leave the right word", async () => {
+            const docs = ensureMock();
+            const originalRandom = Math.random;
+            Math.random = () => 0; // force a correction on the long word
+
+            try {
+              const result = dispatch({
+                type: shared.START_SESSION_MESSAGE,
+                text: "important",
+                wpm: 160,
+                humanizeLevel: 3,
+              });
+              assertEqual(result.response.ok, true);
+              await waitFor(() => docs.getBackspaces() > 0, "a backspace should be dispatched");
+              await waitFor(
+                () => barParts() && barParts().status.textContent === "Complete",
+                "the session should complete"
+              );
+              assert(docs.getBackspaces() > 0, "the correction must reach the document");
+              assertEqual(
+                docs.getText(),
+                "important",
+                "the deleted typo must not survive in the finished text"
+              );
+            } finally {
+              Math.random = originalRandom;
+            }
           });
 
           addTest("pause freezes insertion and resume continues", async () => {
