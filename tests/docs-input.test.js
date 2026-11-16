@@ -4,6 +4,8 @@ const assert = require("node:assert/strict");
 const {
   escapeHtml,
   getKeyDescriptor,
+  getBackspaceDescriptor,
+  insertBackspace,
 } = require("../content/docs-input.js");
 
 test("escapes characters used in the paste HTML", () => {
@@ -73,4 +75,51 @@ test("maps digits, punctuation, whitespace, and Enter", () => {
 test("leaves non-ASCII code points for the paste path", () => {
   assert.equal(getKeyDescriptor("é"), null);
   assert.equal(getKeyDescriptor("🙂"), null);
+});
+
+test("describes Backspace as a real key with keyCode 8", () => {
+  assert.deepEqual(getBackspaceDescriptor(), {
+    key: "Backspace",
+    code: "Backspace",
+    keyCode: 8,
+    which: 8,
+    charCode: 8,
+    shiftKey: false,
+  });
+});
+
+test("insertBackspace sends keydown and keyup but no keypress", () => {
+  const events = [];
+  const view = {
+    KeyboardEvent: class FakeKeyboardEvent {
+      constructor(type, init) {
+        this.type = type;
+        Object.assign(this, init);
+      }
+    },
+  };
+  const editor = {
+    ownerDocument: { defaultView: view },
+    focus() {
+      events.push({ type: "focus" });
+    },
+    dispatchEvent(event) {
+      events.push(event);
+      return true;
+    },
+  };
+
+  assert.deepEqual(insertBackspace(editor), { ok: true });
+  assert.deepEqual(
+    events.map((event) => event.type),
+    ["focus", "keydown", "keyup"]
+  );
+  assert.equal(events[1].key, "Backspace");
+  assert.equal(events[1].keyCode, 8);
+});
+
+test("insertBackspace rejects a missing editor", () => {
+  const result = insertBackspace(null);
+  assert.equal(result.ok, false);
+  assert.equal(result.code, "EDITOR_NOT_FOUND");
 });
