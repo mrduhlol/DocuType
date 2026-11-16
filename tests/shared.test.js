@@ -81,3 +81,29 @@ test("exposes stable pace presets and protocol constants", () => {
     ]
   );
 });
+
+test("exposes writing-style presets and the backspace marker", () => {
+  assert.equal(shared.BACKSPACE_MARKER, "\b");
+  assert.equal(shared.DEFAULT_HUMANIZE_LEVEL, 0);
+  assert.deepEqual(
+    shared.HUMANIZE_LEVELS.map(({ id, label, value }) => ({ id, label, value })),
+    [
+      { id: "clean", label: "Clean", value: 0 },
+      { id: "small", label: "Small", value: 1 },
+      { id: "medium", label: "Medium", value: 2 },
+      { id: "more", label: "More", value: 3 },
+    ]
+  );
+});
+
+test("clamps writing-style level to the supported range", () => {
+  assert.equal(shared.clampHumanizeLevel(0), 0);
+  assert.equal(shared.clampHumanizeLevel("2"), 2);
+  assert.equal(shared.clampHumanizeLevel(-5), 0);
+  assert.equal(shared.clampHumanizeLevel(99), 3);
+  assert.equal(shared.clampHumanizeLevel(1.7), 2);
+  assert.equal(shared.clampHumanizeLevel(undefined), 0);
+  assert.equal(shared.clampHumanizeLevel(null), 0);
+  assert.equal(shared.clampHumanizeLevel(true), 0);
+  assert.equal(shared.clampHumanizeLevel("nope"), 0);
+});
