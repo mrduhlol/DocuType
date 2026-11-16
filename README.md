@@ -1,6 +1,6 @@
 # DocuType
 
-DocuType is a guided typing practice extension for Google Docs. It types the passage you provide into the document at your cursor, one character at a time, with a variable pace and pauses. The floating control bar shows approximate progress and lets you pause, resume, stop, or change speed.
+DocuType is a guided typing extension for Google Docs. It types the passage you provide into the document at your cursor, one character at a time, with a variable pace, pauses, and optional small imperfections that make the result read more like something a person wrote. The floating control bar shows approximate progress and lets you pause, resume, stop, or change speed.
 
 DocuType inserts text automatically. It does not verify who wrote the passage or measure typing skill. Use it only where this kind of assistance is allowed.
 
@@ -26,7 +26,7 @@ Firefox removes temporary add-ons when it restarts. Load DocuType again from the
 
 1. Open an editable Google Docs document and click where the passage should begin.
 2. Click the DocuType toolbar icon.
-3. Enter or paste your passage and choose a starting speed.
+3. Enter or paste your passage, choose a starting speed, and pick a writing style.
 4. Click **Start typing**.
 
 The popup closes and the passage is inserted into the main document. The floating bar does not display the passage.
@@ -38,6 +38,22 @@ Use the floating bar to:
 - **Stop** the session. Text already inserted stays in the document; use Google Docs Undo (`Ctrl+Z` on Windows/Linux or `Cmd+Z` on Mac) to remove it.
 
 Progress is approximate and shows how much of the passage DocuType has inserted. It does not verify the document text. For best results, keep the Google Docs tab in the foreground and avoid moving the cursor during a session.
+
+## Writing styles
+
+The popup offers four styles; **Small** is selected by default.
+
+- **Clean** — types your passage exactly as written.
+- **Small** — a few subtle slips, and rare mistyped longer words that get backspaced and retyped.
+- **Medium** — more frequent slips, transpositions, and typos.
+- **More** — frequent, noticeably imperfect typing.
+
+Two different things happen at levels above Clean:
+
+- **Self-corrections.** On a longer word, DocuType may type a nearby wrong letter, pause, press Backspace once, and retype the correct letter. These only happen during typing, so the finished document still has the right word.
+- **Permanent slips.** Small misspellings such as *definately*, *recieve*, or a swapped pair of letters are typed for real and left in the document on purpose.
+
+The published document only ever contains the slip level you chose; the deleted typos are never left behind. Because Google Docs applies its own autocorrect and smart quotes while text is entered, some of the slips may be changed by Docs itself.
 
 ## Where it works
 
