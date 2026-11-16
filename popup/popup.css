@@ -283,7 +283,8 @@ body {
   background-clip: padding-box;
 }
 
-.speed-field {
+.speed-field,
+.style-field {
   margin: 0;
   padding: 0;
   border: 0;
@@ -292,6 +293,13 @@ body {
 .speed-options {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.style-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
   margin-top: 2px;
 }
