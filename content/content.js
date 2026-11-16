@@ -11,6 +11,7 @@
   }
 
   const shared = namespace.shared;
+  const humanize = namespace.humanize;
   const browserApi = namespace.browserApi;
   const docsInput = namespace.docsInput;
   const ControlBar = namespace.ControlBar;
@@ -19,6 +20,7 @@
 
   if (
     !shared ||
+    !humanize ||
     !docsInput ||
     typeof ControlBar !== "function" ||
     typeof TypingEngine !== "function" ||
@@ -41,7 +43,9 @@
     }
   }
 
-  function createSession(text, wpm, editor) {
+  function createSession(text, wpm, editor, level) {
+    const plan = humanize.buildTypingPlan(text, { level });
+    const total = shared.countCharacters(plan);
     let bar = null;
     let engine = null;
     let session = null;
@@ -68,7 +72,7 @@
 
     try {
       bar = new ControlBar({
-        total: shared.countCharacters(text),
+        total,
         wpm,
         onPause() {
           if (engine && engine.state === "running") {
@@ -89,11 +93,14 @@
       });
 
       engine = new TypingEngine({
-        text,
+        text: plan,
         wpm,
         initialDelayMs: INITIAL_DELAY_MS,
         onReveal({ char, index, total }) {
-          const result = docsInput.insertUnit(editor, char);
+          const result =
+            char === shared.BACKSPACE_MARKER
+              ? docsInput.insertBackspace(editor)
+              : docsInput.insertUnit(editor, char);
           if (!result.ok) {
             engine.stop();
             bar.setError(result.message);
@@ -106,7 +113,7 @@
           bar.setState(state);
         },
         onComplete() {
-          bar.setProgress(shared.countCharacters(text), shared.countCharacters(text));
+          bar.setProgress(total, total);
         },
       });
 
@@ -144,6 +151,7 @@
     }
 
     const wpm = shared.clampWpm(message && message.wpm);
+    const level = shared.clampHumanizeLevel(message && message.humanizeLevel);
 
     // Check for the editor before replacing a running session, so a bad
     // request cannot kill work that is already inserting text.
@@ -158,7 +166,7 @@
       previousSession.destroy();
     }
 
-    const session = createSession(text, wpm, editor);
+    const session = createSession(text, wpm, editor, level);
     if (!session) {
       return { ok: false, code: "START_FAILED" };
     }
