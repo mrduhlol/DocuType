@@ -41,7 +41,10 @@
     let delay = base * (0.7 + random() * 0.6);
     const pauseRoll = random();
 
-    if (char === "\n") {
+    if (char === "\b") {
+      // The brief beat before deleting a typo reads as a noticed mistake.
+      delay += 90 + random() * 120;
+    } else if (char === "\n") {
       delay += 260 + random() * 280;
     } else if (SENTENCE_PUNCTUATION.includes(char)) {
       delay += 220 + random() * 320;
