@@ -78,6 +78,26 @@ test("a slip leaves a believable error in the finished text", () => {
   assert.equal(plan.length, 3, "a transposition keeps the word length");
 });
 
+test("uses familiar misspellings for small, natural-looking slips", () => {
+  // no correction (1), slip (0), then choose the stored misspelling (0)
+  const plan = buildTypingPlan("definitely", {
+    level: 1,
+    random: scriptedRandom([1, 0, 0]),
+  });
+
+  assert.equal(plan, "definately");
+});
+
+test("word substitutions keep the original capitalisation", () => {
+  // no correction roll for a short word, slip (0), stored misspelling (0)
+  const plan = buildTypingPlan("Their", {
+    level: 1,
+    random: scriptedRandom([0, 0]),
+  });
+
+  assert.equal(plan, "There");
+});
+
 test("a correction never appears in the finished text", () => {
   const longText =
     "Education generally requires considerable dedication and consistent application over several years.";
