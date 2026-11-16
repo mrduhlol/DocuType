@@ -311,6 +311,14 @@ test("punctuation and line breaks add natural extra delay", () => {
   assert.ok(newline > period);
 });
 
+test("backspaces get a short hesitation before the delete", () => {
+  const random = () => 0.5;
+  const letter = computeCharDelay("a", 45, random);
+  const backspace = computeCharDelay("\b", 45, random);
+
+  assert.ok(backspace > letter, "a self-correction should not fire instantly");
+});
+
 test("jitter changes the pace and occasional pauses are longer", () => {
   const base = 12000 / 45;
   const slowJitter = computeCharDelay("a", 45, () => 0);
