@@ -28,6 +28,13 @@
     more: "Lots",
   });
 
+  const STYLE_HINTS = Object.freeze({
+    0: "Types your passage exactly as pasted, with no added errors.",
+    1: "A few errors may stay in the text. Other typos are backspaced and corrected.",
+    2: "Some errors may stay in the text. Other typos are backspaced and corrected.",
+    3: "More errors may stay in the text. Other typos are backspaced and corrected.",
+  });
+
   const CONTENT_ERROR_COPY = {
     NOT_DOCS:
       "This tab isn't a Google Docs document. Open your document, then reopen DocuType.",
@@ -75,6 +82,8 @@
       charCount: document.getElementById("charCount"),
       speedOptions: document.getElementById("speedOptions"),
       styleOptions: document.getElementById("styleOptions"),
+      styleHint: document.getElementById("styleHint"),
+      documentStatus: document.getElementById("documentStatus"),
       startButton: document.getElementById("startButton"),
       startLabel: document.getElementById("startLabel"),
       startIcon: document.getElementById("startIcon"),
@@ -134,7 +143,7 @@
       input.checked = style.id === DEFAULT_STYLE_ID;
       input.setAttribute(
         "aria-label",
-        `${style.label} — ${STYLE_DESCRIPTIONS[style.id]} little imperfections`
+        `${style.label} — ${STYLE_DESCRIPTIONS[style.id]} added errors`
       );
 
       const body = document.createElement("span");
@@ -154,6 +163,11 @@
     }
 
     elements.styleOptions.replaceChildren(fragment);
+    updateStyleHint();
+  }
+
+  function updateStyleHint() {
+    elements.styleHint.textContent = STYLE_HINTS[getSelectedStyle()];
   }
 
   function updateCharCount() {
@@ -233,6 +247,8 @@
     const check = await inspectActiveTab();
     state.ready = check.ok;
     state.tab = check.ok ? check.tab : null;
+    elements.documentStatus.textContent = check.ok ? "Document ready" : "Document unavailable";
+    elements.documentStatus.classList.toggle("is-ready", check.ok);
 
     if (check.ok) {
       clearBanner();
@@ -326,6 +342,7 @@
       clearError();
     });
 
+    elements.styleOptions.addEventListener("change", updateStyleHint);
     elements.form.addEventListener("submit", handleSubmit);
   }
 

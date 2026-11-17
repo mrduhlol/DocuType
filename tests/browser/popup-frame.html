@@ -175,6 +175,10 @@
           const parsed = new DOMParser().parseFromString(html, "text/html");
           parsed.querySelectorAll("script").forEach((script) => script.remove());
           document.body.innerHTML = parsed.body.innerHTML;
+          // Markup is hosted in /tests/browser; assets belong to the real popup.
+          document.querySelectorAll("img[src]").forEach((image) => {
+            image.src = new URL(image.getAttribute("src"), new URL("/popup/popup.html", location.origin)).href;
+          });
         }
 
         async function boot() {
@@ -250,7 +254,7 @@
             await test("uses autotype copy and a warning", async () => {
               const tagline = document.querySelector(".brand-tagline").textContent;
               const label = document.querySelector('label[for="passage"]').textContent.trim();
-              const hint = document.querySelector(".field-hint").textContent;
+              const hint = document.getElementById("speedHint").textContent;
               const footer = document.querySelector(".app-footer").textContent;
 
               assert(tagline.includes("Types passages into Google Docs"), `Unexpected tagline: ${tagline}`);
@@ -267,6 +271,24 @@
               const checked = document.querySelector('input[name="style"]:checked');
               assert(checked, "A writing style should be preselected");
               assertEqual(checked.value, "1", "Small should be the default style");
+            });
+
+            await test("uses the approved icon and identifies error controls", async () => {
+              const image = document.querySelector("img.brand-mark");
+              assert(image && image.src.endsWith("/icons/icon128.png"), "The popup must use the installed icon");
+              await waitFor(() => image.complete && image.naturalWidth === 128, "the approved icon to load");
+              assertEqual(document.getElementById("styleLabel").textContent.trim(), "Writing style (Errors)");
+              assertEqual(document.getElementById("documentStatus").textContent, "Document ready");
+            });
+
+            await test("explains the chosen error level without changing the passage", async () => {
+              setPassage("Keep this passage intact.");
+              for (const [value, expected] of [[0, "no added errors"], [1, "A few errors"], [2, "Some errors"], [3, "More errors"]]) {
+                const radio = document.querySelector(`input[name="style"][value="${value}"]`);
+                radio.click();
+                assert(document.getElementById("styleHint").textContent.includes(expected), "The hint must explain the selected level");
+                assertEqual(passage().value, "Keep this passage intact.");
+              }
             });
 
             await test("treats whitespace-only text as empty", async () => {

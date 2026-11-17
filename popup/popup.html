@@ -10,20 +10,13 @@
     <main class="app">
       <header class="app-header">
         <div class="brand">
-          <span class="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 128 128" focusable="false">
-              <rect width="128" height="128" rx="28" fill="#1B1D21" />
-              <rect x="28" y="39" width="44" height="9" rx="4.5" fill="#F8F2E8" />
-              <rect x="28" y="59" width="58" height="9" rx="4.5" fill="#F8F2E8" />
-              <rect x="28" y="79" width="34" height="9" rx="4.5" fill="#F8F2E8" opacity="0.62" />
-              <rect x="91" y="36" width="10" height="56" rx="5" fill="#FF7A4D" />
-            </svg>
-          </span>
+          <img class="brand-mark" src="../icons/icon128.png" width="44" height="44" alt="" />
           <span class="brand-copy">
             <span class="brand-name">DocuType</span>
             <span class="brand-tagline">Types passages into Google Docs</span>
           </span>
         </div>
+        <span class="document-status" id="documentStatus" role="status">Checking document…</span>
       </header>
 
       <div class="context-banner" id="contextBanner" role="status" hidden>
@@ -61,21 +54,23 @@
             rows="5"
             maxlength="10000"
             placeholder="Paste the passage you want DocuType to type…"
+            aria-describedby="passageHint charCount"
             spellcheck="false"
             autofocus
           ></textarea>
+          <p class="field-hint editor-hint" id="passageHint">Place your cursor in Google Docs before you start.</p>
         </div>
 
         <fieldset class="field speed-field">
           <legend class="field-label" id="speedLabel">Typing speed</legend>
-          <div class="speed-options" id="speedOptions" role="radiogroup" aria-labelledby="speedLabel"></div>
-          <p class="field-hint">How fast DocuType types into your document.</p>
+          <div class="speed-options" id="speedOptions" role="radiogroup" aria-labelledby="speedLabel" aria-describedby="speedHint"></div>
+          <p class="field-hint" id="speedHint">How fast DocuType types into your document.</p>
         </fieldset>
 
         <fieldset class="field style-field">
-          <legend class="field-label" id="styleLabel">Writing style</legend>
-          <div class="style-options" id="styleOptions" role="radiogroup" aria-labelledby="styleLabel"></div>
-          <p class="field-hint">Add human-looking slips. Longer-word typos are backspaced and retyped, so the finished word is still correct.</p>
+          <legend class="field-label" id="styleLabel">Writing style <span class="label-detail">(Errors)</span></legend>
+          <div class="style-options" id="styleOptions" role="radiogroup" aria-labelledby="styleLabel" aria-describedby="styleHint"></div>
+          <p class="field-hint style-hint" id="styleHint" aria-live="polite">A few errors may stay in the text. Other typos are backspaced and corrected.</p>
         </fieldset>
 
         <p class="form-error" id="formError" role="alert" hidden></p>
@@ -98,11 +93,12 @@
               <path d="M5.4 7V5.5a2.6 2.6 0 0 1 5.2 0V7" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" />
             </svg>
           </span>
-          <span>Nothing is uploaded or saved. The passage stays in your browser.</span>
+          <span>Local to your browser. Nothing is uploaded or saved.</span>
         </p>
-        <p class="footer-note footer-note--warning">
-          <span>DocuType inserts the passage into your document. Place your cursor first, and use it only where outside help is allowed.</span>
-        </p>
+        <details class="usage-note">
+          <summary>Before you start</summary>
+          <p>DocuType inserts the passage into your document. Place your cursor first, and use it only where outside help is allowed.</p>
+        </details>
       </footer>
     </main>
 
