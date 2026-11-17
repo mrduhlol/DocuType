@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="icons/icon128.png" alt="DocuType app icon" width="96" height="96" />
+  <img src="docs/app-icon.svg" alt="DocuType app icon" width="160" height="160" />
 </p>
 
 <p align="center">
   <a href="https://github.com/mrduhlol/DocuType/archive/refs/heads/main.zip">
-    <img src="https://img.shields.io/badge/Download_DocuType-ZIP-E64A19?style=for-the-badge&amp;logo=github&amp;logoColor=white" alt="Download DocuType ZIP" />
+    <img src="https://img.shields.io/badge/Download_DocuType-ZIP-E64A19?style=flat&amp;logo=github&amp;logoColor=white" alt="Download DocuType ZIP" />
   </a>
 </p>
 
