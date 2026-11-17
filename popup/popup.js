@@ -247,7 +247,7 @@
     const check = await inspectActiveTab();
     state.ready = check.ok;
     state.tab = check.ok ? check.tab : null;
-    elements.documentStatus.textContent = check.ok ? "Document ready" : "Document unavailable";
+    elements.documentStatus.textContent = check.ok ? "Document ready" : "Open Google Docs";
     elements.documentStatus.classList.toggle("is-ready", check.ok);
 
     if (check.ok) {
