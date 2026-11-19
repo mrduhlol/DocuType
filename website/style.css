@@ -1,22 +1,24 @@
-/* Hallmark: Coral · product screenshot · installation guide */
+/* Hallmark: Charcoal and ember · product screenshot · installation guide */
 /* Critique: Keep the download prominent and let real product imagery carry the page. */
 :root {
-  color-scheme: light;
-  --paper: #f8f3e9;
-  --ink: #251a16;
-  --muted: #624f47;
-  --accent: #a52d0b;
-  --white: #fff9f0;
-  --stage: #e9b09a;
-  --line: #d6c4b6;
-  --shadow: #49271b38;
+  color-scheme: dark;
+  --paper: #161519;
+  --ink: #f8eee8;
+  --muted: #c9bbb8;
+  --accent: #ff986d;
+  --white: #241e21;
+  --stage: #472b2a;
+  --line: #483b40;
+  --shadow: #09070b85;
+  --glow: #71393070;
+  --guide: #1d191e;
   --sans: system-ui, sans-serif;
   --display: Georgia, serif;
   --mono: ui-monospace, monospace;
 }
 * { box-sizing: border-box; }
 html, body { overflow-x: clip; }
-body { margin: 0; background: var(--paper); color: var(--ink); font: 1rem/1.6 var(--sans); }
+body { margin: 0; background: radial-gradient(ellipse 52rem 35rem at 85% 8rem, var(--glow), transparent 80%), var(--paper); color: var(--ink); font: 1rem/1.6 var(--sans); }
 a { color: inherit; text-underline-offset: .22em; }
 a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
 img { display: block; max-width: 100%; height: auto; }
@@ -36,7 +38,7 @@ h2 { font-size: clamp(2.5rem,5vw,4rem); }
 .download span { font: .75rem var(--mono); border: 1px solid currentColor; border-radius: .2rem; padding: .2rem .3rem; }
 .product { display: grid; place-items: center; padding: clamp(1.5rem,5vw,3rem); background: var(--stage); border-radius: .45rem; }
 .product img { width: min(100%, 18rem); border-radius: .65rem; box-shadow: 0 15px 35px var(--shadow); }
-.guide { border-block: 1px solid var(--line); padding-block: clamp(2.5rem,6vw,5rem); }
+.guide { background: var(--guide); border-block: 1px solid var(--line); padding-block: clamp(2.5rem,6vw,5rem); }
 .steps { list-style: none; padding: 0; margin: 2rem 0 0; counter-reset: step; }
 .steps > li { counter-increment: step; display: grid; grid-template-columns: 2.5rem minmax(0,1fr) minmax(0,1.2fr); align-items: start; gap: 1rem 1.4rem; border-top: 1px solid var(--line); padding: 1.4rem 0; }
 .steps > li::before { content: counter(step, decimal-leading-zero); color: var(--accent); font: 1rem/1.8 var(--mono); }
