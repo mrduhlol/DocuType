@@ -10,6 +10,10 @@
 
 # DocuType
 
+[View the website and installation guide](https://htmlpreview.github.io/?https://github.com/mrduhlol/DocuType/blob/main/website/index.html)
+
+You can also extract the ZIP and open [website/index.html](website/index.html) in your browser.
+
 ## Install
 
 ### Chrome
