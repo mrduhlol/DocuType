@@ -17,9 +17,13 @@ async function startMotion() {
   gsap.matchMedia().add("(prefers-reduced-motion: no-preference)", () => {
     const lenis = new Lenis({ autoRaf: true, anchors: true });
 
-    const split = SplitText.create(".hero h1", { type: "words" });
+    const split = SplitText.create(".hero h1", { type: "words", mask: "words" });
     const intro = gsap.from(split.words, {
-      y: 10, opacity: 0.55, stagger: 0.04, duration: 0.45, ease: "power3.out",
+      yPercent: 65,
+      opacity: 0.55,
+      stagger: 0.055,
+      duration: 0.58,
+      ease: "power3.out",
       onComplete: () => split.revert(),
     });
 
