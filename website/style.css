@@ -54,3 +54,9 @@ figcaption, .footer { font-size: .875rem; color: var(--muted); }
   .steps > li { grid-template-columns: 2rem minmax(0,1fr); }
   .steps figure { grid-column: 2; }
 }
+
+::selection { background: var(--stage); color: var(--ink); }
+.guide { scroll-margin-top: 1rem; }
+.hero > div { min-width: 0; }
+html.lenis, html.lenis body { height: auto; }
+html.lenis.lenis-smooth { scroll-behavior: auto !important; }

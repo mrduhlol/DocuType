@@ -16,8 +16,8 @@
   <main>
     <section class="wrap hero">
       <div>
-        <h1>From passage to Google Docs.</h1>
-        <p>Paste your text and choose how fast it types into Google Docs.</p>
+        <h1>Type your text into Google Docs.</h1>
+        <p>Paste a passage, pick a speed, and start typing.</p>
         <a class="download" href="https://github.com/mrduhlol/DocuType/archive/refs/heads/main.zip">Download for Chrome <span>ZIP</span></a>
       </div>
       <figure class="product">
@@ -30,7 +30,7 @@
         <ol class="steps">
           <li><div><h3>Download the ZIP</h3><p>Click <strong>Download for Chrome</strong> above. Look for <code>DocuType-main.zip</code> in your Downloads folder.</p></div></li>
           <li>
-            <div><h3>Extract the folder</h3><p>Right-click the ZIP and choose <strong>Extract All</strong> or <strong>Extract Here</strong>. On macOS, double-click the ZIP. Open the extracted folder and check that it contains <code>manifest.json</code>.</p></div>
+            <div><h3>Extract the folder</h3><p>On Windows, right-click and choose <strong>Extract All</strong>. On Linux, choose <strong>Extract Here</strong> if your file manager offers it. On macOS, double-click the ZIP. Open the extracted folder and check that it contains <code>manifest.json</code>.</p></div>
             <figure class="folder"><figcaption>Inside the extracted folder</figcaption><pre>DocuType-main/
 ├── manifest.json
 ├── content/
@@ -39,7 +39,7 @@
 └── popup/</pre></figure>
           </li>
           <li>
-            <div><h3>Load the extracted folder</h3><p>Open <code>chrome://extensions</code> in Chrome. Switch on <strong>Developer mode</strong>, click <strong>Load unpacked</strong>, and select the folder containing <code>manifest.json</code>. Chrome loads the folder from your computer.</p></div>
+            <div><h3>Load the extracted folder</h3><p>Open <code>chrome://extensions</code> in Chrome. Switch on <strong>Developer mode</strong>, click <strong>Load unpacked</strong>, and select the folder containing <code>manifest.json</code>. </p></div>
             <figure class="capture"><a href="assets/chrome-extensions.png"><img src="assets/chrome-extensions.png" width="1000" height="580" loading="lazy" alt="Chromium Extensions page showing Developer mode and the Load unpacked button"></a><figcaption>Developer mode reveals Load unpacked.</figcaption></figure>
           </li>
           <li><div><h3>Open DocuType in Google Docs</h3><p>Open an editable document and place your cursor. From Chrome’s extensions menu, open DocuType, paste your passage, choose a speed, and click <strong>Start typing</strong>.</p></div></li>
@@ -47,6 +47,7 @@
       </div>
     </section>
   </main>
+  <script type="module" src="motion.js"></script>
   <footer class="wrap footer"><span>DocuType</span><a href="https://github.com/mrduhlol/DocuType">Source on GitHub</a></footer>
 </body>
 </html>
