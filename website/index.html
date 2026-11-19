@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Download DocuType for Chrome and follow the illustrated installation guide.">
+  <title>DocuType — Type into Google Docs</title>
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="wrap masthead">
+    <a class="brand" href="./"><img src="assets/icon.svg" width="36" height="36" alt="">DocuType</a>
+    <nav aria-label="Main navigation"><a href="#install">Installation guide</a></nav>
+  </header>
+  <main>
+    <section class="wrap hero">
+      <div>
+        <h1>From passage to Google Docs.</h1>
+        <p>Paste your text, pick a pace, and let DocuType type it into your document at the cursor.</p>
+        <a class="download" href="https://github.com/mrduhlol/DocuType/archive/refs/heads/main.zip">Download for Chrome <span>ZIP</span></a>
+      </div>
+      <figure class="product">
+        <img src="assets/popup.png" width="440" height="603" alt="DocuType popup with a sample passage, speed presets, and writing style options">
+      </figure>
+    </section>
+    <section class="guide" id="install">
+      <div class="wrap">
+        <h2>Install in Chrome</h2>
+        <ol class="steps">
+          <li><div><h3>Download the ZIP</h3><p>Click <strong>Download for Chrome</strong> above. Look for <code>DocuType-main.zip</code> in your Downloads folder.</p></div></li>
+          <li>
+            <div><h3>Extract the folder</h3><p>Right-click the ZIP and choose <strong>Extract All</strong> or <strong>Extract Here</strong>. On macOS, double-click the ZIP. Open the extracted folder and check that it contains <code>manifest.json</code>.</p></div>
+            <figure class="folder"><figcaption>Inside the extracted folder</figcaption><pre>DocuType-main/
+├── manifest.json
+├── content/
+├── icons/
+├── lib/
+└── popup/</pre></figure>
+          </li>
+          <li>
+            <div><h3>Load the extracted folder</h3><p>Open <code>chrome://extensions</code> in Chrome. Switch on <strong>Developer mode</strong>, click <strong>Load unpacked</strong>, and select the folder containing <code>manifest.json</code>. Chrome loads the folder from your computer.</p></div>
+            <figure class="capture"><a href="assets/chrome-extensions.png"><img src="assets/chrome-extensions.png" width="1000" height="580" loading="lazy" alt="Chromium Extensions page showing Developer mode and the Load unpacked button"></a><figcaption>Developer mode reveals Load unpacked.</figcaption></figure>
+          </li>
+          <li><div><h3>Open DocuType in Google Docs</h3><p>Open an editable document and place your cursor. From Chrome’s extensions menu, open DocuType, paste your passage, choose a speed, and click <strong>Start typing</strong>.</p></div></li>
+        </ol>
+      </div>
+    </section>
+  </main>
+  <footer class="wrap footer"><span>DocuType</span><a href="https://github.com/mrduhlol/DocuType">Source on GitHub</a></footer>
+</body>
+</html>
