@@ -125,7 +125,7 @@ test("insertBackspace rejects a missing editor", () => {
   assert.equal(result.code, "EDITOR_NOT_FOUND");
 });
 
-test("a PDF tick inserts one styled character, with paragraph formatting on the first tick", () => {
+test("a PDF tick inserts one styled character, without moving the cursor or pasting a block", () => {
   const transfers = [];
   const keys = [];
   const view = {
@@ -153,26 +153,20 @@ test("a PDF tick inserts one styled character, with paragraph formatting on the 
     dispatchEvent(event) {
       event.defaultPrevented = true;
       if (event.type === "paste") transfers.push(event.clipboardData);
-      if (event.type === "keydown") keys.push(event.key);
+      if (event.type === "keydown") keys.push([event.key, event.ctrlKey]);
     },
   };
   const run = { font: "Times New Roman", size: 12, bold: true, italic: true, underline: true, strikethrough: true };
-  const row = {
-    alignment: "center",
-    lineHeight: 18,
-    gap: 4,
-    border: { width: 1, color: "#123456", top: true, bottom: false },
-  };
+  const row = { alignment: "center" };
 
   assert.deepEqual(insertPdfCharacter(editor, "&", run, row), { ok: true });
   assert.deepEqual(insertPdfCharacter(editor, " ", run), { ok: true });
   assert.deepEqual(insertPdfCharacter(editor, "a", { ...run, underline: false, strikethrough: false }), { ok: true });
-  assert.deepEqual(keys, ["ArrowLeft", " "]);
+  assert.deepEqual(keys, [["E", true], [" ", undefined]]);
   assert.deepEqual(transfers.map((transfer) => transfer.get("text/plain")), ["&", "a"]);
   const first = transfers[0].get("text/html");
-  assert.match(first, /text-align:center/);
-  assert.match(first, /line-height:18\.00pt/);
-  assert.doesNotMatch(first, /border-/);
+  assert.match(first, /^<span /);
+  assert.doesNotMatch(first, /<p[ >]/);
   assert.match(first, /font-family:'Times New Roman';font-size:12\.00pt;/);
   assert.match(first, /font-weight:bold;font-style:italic;text-decoration:underline line-through/);
   assert.match(first, /&amp;/);

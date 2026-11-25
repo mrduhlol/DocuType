@@ -28,10 +28,9 @@ test("PDF setup must finish before one-character ticks can reach the document", 
           calls.push({ char, bold: run.bold, alignment: paragraph?.alignment });
           return { ok: true };
         },
-          movePdfCaret(target, forward) {
+        insertUnit(target, char) {
           assert.equal(target, editor);
-            assert.equal(forward, true);
-            calls.push({ char: "\n" });
+          calls.push({ char });
           return { ok: true };
         },
       },
