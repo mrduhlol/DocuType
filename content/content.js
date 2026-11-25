@@ -44,15 +44,10 @@
     }
   }
 
-  function buildPdfPlan(rows, level, border) {
+  function buildPdfPlan(rows, level) {
     const units = [];
     const parts = [];
     for (const [index, row] of rows.entries()) {
-      const startsPage = index === 0 || row.pageBreak;
-      const endsPage = index === rows.length - 1 || rows[index + 1].pageBreak;
-      const paragraph = border?.width > 0
-        ? { ...row, border: { ...border, top: startsPage, bottom: endsPage } }
-        : row;
       if (index > 0) {
         parts.push("\n");
         units.push(null);
@@ -62,7 +57,7 @@
         const text = /^\(img \d+\)$/.test(run.text) ? run.text : humanize.buildTypingPlan(run.text, { level });
         parts.push(text);
         for (const character of text) {
-          units.push({ run, paragraph: first ? paragraph : undefined });
+          units.push({ run, paragraph: first ? row : undefined });
           first = false;
         }
       }
@@ -70,8 +65,8 @@
     return { text: parts.join(""), units };
   }
 
-  function createSession(text, wpm, editor, level, pdfRows, layout) {
-    const pdf = pdfRows ? buildPdfPlan(pdfRows, level, layout?.border) : null;
+  function createSession(text, wpm, editor, level, pdfRows) {
+    const pdf = pdfRows ? buildPdfPlan(pdfRows, level) : null;
     const plan = pdf ? pdf.text : humanize.buildTypingPlan(text, { level });
     const total = shared.countCharacters(plan);
     let bar = null;
@@ -216,7 +211,7 @@
     }
 
     function beginTyping(nextEditor = editor) {
-      const session = createSession(text, wpm, nextEditor, level, pdfRows, message.pdfLayout);
+      const session = createSession(text, wpm, nextEditor, level, pdfRows);
       if (!session) return { ok: false, code: "START_FAILED" };
       activeSession = session;
       return { ok: true };

@@ -172,8 +172,7 @@ test("a PDF tick inserts one styled character, with paragraph formatting on the 
   const first = transfers[0].get("text/html");
   assert.match(first, /text-align:center/);
   assert.match(first, /line-height:18\.00pt/);
-  assert.match(first, /border-top:1\.00pt solid #123456/);
-  assert.doesNotMatch(first, /border-bottom/);
+  assert.doesNotMatch(first, /border-/);
   assert.match(first, /font-family:'Times New Roman';font-size:12\.00pt;/);
   assert.match(first, /font-weight:bold;font-style:italic;text-decoration:underline line-through/);
   assert.match(first, /&amp;/);

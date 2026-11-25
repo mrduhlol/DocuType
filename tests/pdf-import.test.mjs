@@ -45,7 +45,7 @@ test("rejects invalid PDFs and imports over the text limit", async () => {
   await assert.rejects(readPdf(makePdf("Hello"), 4), /longer than 4 characters/);
 });
 
-test("infers page margins, a painted frame, text alignment, and baseline spacing", async () => {
+test("infers formatting while ignoring a painted page frame", async () => {
   const rows = await readPdf(makePdf("", `
 15 15 582 0.75 re 15 776.25 582 0.75 re
 15 15 0.75 762 re 596.25 15 0.75 762 re f
@@ -58,11 +58,7 @@ BT /F1 12 Tf 72 656 Td (New paragraph) Tj ET`));
   assert.equal(rows.layout.width, 612);
   assert.equal(rows.layout.height, 792);
   assert.equal(rows.layout.margins.left, 72);
-  assert.deepEqual(rows.layout.border, {
-    width: 0.75,
-    color: "#000000",
-    insets: { top: 15, right: 15, bottom: 15, left: 15 },
-  });
+  assert.equal(rows.layout.border, undefined);
   assert.deepEqual(rows.map((row) => row.alignment), ["left", "center", "left", "left"]);
   assert.equal(rows[0].runs[0].underline, true);
   assert.equal(rows[1].runs[0].color, "#336699");

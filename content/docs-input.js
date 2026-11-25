@@ -386,12 +386,6 @@
     let style = `margin:${points(row.gap)} ${points(row.rightIndent)} 0 ${points(row.indent)};line-height:${lineHeight};text-align:${alignment};`;
     if (alignment === "justify") style += "text-align-last:justify;";
     if (row.pageBreak) style += "page-break-before:always;";
-    if (row.border?.width > 0) {
-      const stroke = `${points(row.border.width)} solid ${color(row.border.color)}`;
-      style += `border-left:${stroke};border-right:${stroke};`;
-      if (row.border.top) style += `border-top:${stroke};`;
-      if (row.border.bottom) style += `border-bottom:${stroke};`;
-    }
     return style;
   }
 
