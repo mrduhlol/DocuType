@@ -42,7 +42,7 @@
       </div>
 
       <form class="session-form" id="sessionForm" novalidate>
-        <div class="field">
+        <div class="field composer">
           <div class="source-switch" role="group" aria-label="Input source">
             <button id="passageMode" type="button" aria-pressed="true" aria-controls="passagePanel">
               <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5h10M10 5v10m-3 0h6"/></svg>
@@ -56,7 +56,7 @@
 
           <div class="passage-panel" id="passagePanel">
             <div class="field-head">
-              <label class="passage-label" for="passage">Passage</label>
+              <label class="passage-label" for="passage">Text to type</label>
               <span class="char-count" id="charCount">0 / 10,000</span>
             </div>
             <textarea
@@ -73,7 +73,7 @@
             <p class="field-hint editor-hint" id="passageHint">Place your cursor in Google Docs before you start.</p>
           </div>
 
-          <div id="uploadPanel" hidden>
+          <div class="upload-panel" id="uploadPanel" hidden>
             <button class="pdf-drop" id="pdfDrop" type="button">
               <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 16V4m-4 4 4-4 4 4M4 16v4h16v-4" />
@@ -87,17 +87,19 @@
           </div>
         </div>
 
-        <fieldset class="field speed-field">
-          <legend class="field-label" id="speedLabel">Typing speed</legend>
-          <div class="speed-options" id="speedOptions" role="radiogroup" aria-labelledby="speedLabel" aria-describedby="speedHint"></div>
-          <p class="field-hint" id="speedHint">How fast DocuType types into your document.</p>
-        </fieldset>
+        <div class="settings">
+          <div class="field">
+            <span class="field-label" id="speedLabel">Typing speed</span>
+            <div class="speed-options" id="speedOptions" role="radiogroup" aria-labelledby="speedLabel" aria-describedby="speedHint"></div>
+            <p class="field-hint" id="speedHint">How fast DocuType types into your document.</p>
+          </div>
 
-        <fieldset class="field style-field">
-          <legend class="field-label" id="styleLabel">Typing errors</legend>
-          <div class="style-options" id="styleOptions" role="radiogroup" aria-labelledby="styleLabel" aria-describedby="styleHint"></div>
-          <p class="field-hint style-hint" id="styleHint" aria-live="polite">A few errors may stay in the text. Other typos are backspaced and corrected.</p>
-        </fieldset>
+          <div class="field">
+            <span class="field-label" id="styleLabel">Typing errors</span>
+            <div class="style-options" id="styleOptions" role="radiogroup" aria-labelledby="styleLabel" aria-describedby="styleHint"></div>
+            <p class="field-hint style-hint" id="styleHint" aria-live="polite">A few errors may stay in the text. Other typos are backspaced and corrected.</p>
+          </div>
+        </div>
 
         <p class="form-error" id="formError" role="alert" hidden></p>
 
