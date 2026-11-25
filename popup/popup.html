@@ -42,7 +42,7 @@
       </div>
 
       <form class="session-form" id="sessionForm" novalidate>
-        <div class="field">
+        <div class="field compose">
           <div class="source-switch" role="group" aria-label="Input source">
             <button id="passageMode" type="button" aria-pressed="true" aria-controls="passagePanel">
               <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5h10M10 5v10m-3 0h6"/></svg>
@@ -87,17 +87,19 @@
           </div>
         </div>
 
-        <fieldset class="field speed-field">
-          <legend class="field-label" id="speedLabel">Typing speed</legend>
-          <div class="speed-options" id="speedOptions" role="radiogroup" aria-labelledby="speedLabel" aria-describedby="speedHint"></div>
-          <p class="field-hint" id="speedHint">How fast DocuType types into your document.</p>
-        </fieldset>
+        <div class="settings">
+          <fieldset class="field speed-field">
+            <legend class="field-label" id="speedLabel">Typing speed</legend>
+            <div class="speed-options" id="speedOptions" role="radiogroup" aria-labelledby="speedLabel" aria-describedby="speedHint"></div>
+            <p class="field-hint" id="speedHint">How fast DocuType types into your document.</p>
+          </fieldset>
 
-        <fieldset class="field style-field">
-          <legend class="field-label" id="styleLabel">Typing errors</legend>
-          <div class="style-options" id="styleOptions" role="radiogroup" aria-labelledby="styleLabel" aria-describedby="styleHint"></div>
+          <fieldset class="field style-field">
+            <legend class="field-label" id="styleLabel">Typing errors</legend>
+            <div class="style-options" id="styleOptions" role="radiogroup" aria-labelledby="styleLabel" aria-describedby="styleHint"></div>
+          </fieldset>
           <p class="field-hint style-hint" id="styleHint" aria-live="polite">A few errors may stay in the text. Other typos are backspaced and corrected.</p>
-        </fieldset>
+        </div>
 
         <p class="form-error" id="formError" role="alert" hidden></p>
 
