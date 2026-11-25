@@ -131,7 +131,9 @@
               ? docsInput.insertBackspace(editor)
               : unit
                 ? docsInput.insertPdfCharacter(editor, char, unit.run, unit.paragraph)
-                : docsInput.insertUnit(editor, char);
+                : pdf && char === "\n"
+                  ? docsInput.movePdfCaret(editor, true)
+                  : docsInput.insertUnit(editor, char);
           if (!result.ok) {
             engine.stop();
             bar.setError(result.message);

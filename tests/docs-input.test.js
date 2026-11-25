@@ -127,7 +127,14 @@ test("insertBackspace rejects a missing editor", () => {
 
 test("a PDF tick inserts one styled character, with paragraph formatting on the first tick", () => {
   const transfers = [];
+  const keys = [];
   const view = {
+    KeyboardEvent: class {
+      constructor(type, init) {
+        this.type = type;
+        Object.assign(this, init);
+      }
+    },
     DataTransfer: class extends Map {
       setData(type, value) {
         this.set(type, value);
@@ -145,7 +152,8 @@ test("a PDF tick inserts one styled character, with paragraph formatting on the 
     focus() {},
     dispatchEvent(event) {
       event.defaultPrevented = true;
-      transfers.push(event.clipboardData);
+      if (event.type === "paste") transfers.push(event.clipboardData);
+      if (event.type === "keydown") keys.push(event.key);
     },
   };
   const run = { font: "Times New Roman", size: 12, bold: true, italic: true, underline: true, strikethrough: true };
@@ -157,7 +165,9 @@ test("a PDF tick inserts one styled character, with paragraph formatting on the 
   };
 
   assert.deepEqual(insertPdfCharacter(editor, "&", run, row), { ok: true });
+  assert.deepEqual(insertPdfCharacter(editor, " ", run), { ok: true });
   assert.deepEqual(insertPdfCharacter(editor, "a", { ...run, underline: false, strikethrough: false }), { ok: true });
+  assert.deepEqual(keys, ["ArrowLeft", " "]);
   assert.deepEqual(transfers.map((transfer) => transfer.get("text/plain")), ["&", "a"]);
   const first = transfers[0].get("text/html");
   assert.match(first, /text-align:center/);

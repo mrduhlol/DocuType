@@ -396,13 +396,24 @@
   }
 
   function insertPdfCharacter(editor, character, run, row) {
+    // A standalone space in an HTML clipboard fragment can be trimmed by Docs.
+    if (!row && character === " ") return insertUnit(editor, character);
+
     const font = String(run.font || "").replace(/[^\p{L}\p{N} ._-]/gu, "").slice(0, 100);
     const family = font ? `font-family:'${font}';` : "";
     const size = points(run.size > 0 ? run.size : 11);
     const decoration = [run.underline && "underline", run.strikethrough && "line-through"].filter(Boolean).join(" ");
     const style = `${family}font-size:${size};font-weight:${run.bold ? "bold" : "normal"};font-style:${run.italic ? "italic" : "normal"};text-decoration:${decoration || "none"};color:${color(run.color)};white-space:pre-wrap;`;
     const span = `<span style="${style}">${escapeHtml(character)}</span>`;
-    return dispatchPaste(editor, character, row ? `<p style="${formatParagraph(row)}">${span}</p>` : span);
+    const result = dispatchPaste(editor, character, row ? `<p style="${formatParagraph(row)}">${span}</p>` : span);
+    // Docs leaves the caret in the following paragraph after a block paste.
+    return row && result.ok ? movePdfCaret(editor, false) : result;
+  }
+
+  function movePdfCaret(editor, forward) {
+    const key = forward ? "ArrowRight" : "ArrowLeft";
+    const keyCode = forward ? 39 : 37;
+    return dispatchKey(editor, { key, code: key, keyCode, charCode: 0, shiftKey: false });
   }
 
   function insertUnit(editor, character) {
@@ -438,5 +449,6 @@
     insertUnit,
     insertBackspace,
     insertPdfCharacter,
+    movePdfCaret,
   });
 });
