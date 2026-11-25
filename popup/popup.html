@@ -65,7 +65,7 @@
               name="passage"
               rows="5"
               maxlength="10000"
-              placeholder="Paste the passage you want DocuType to type…"
+              placeholder="Paste or write your text here…"
               aria-describedby="passageHint charCount"
               spellcheck="false"
               autofocus
@@ -87,19 +87,32 @@
           </div>
         </div>
 
-        <div class="settings">
-          <div class="field">
-            <span class="field-label" id="speedLabel">Typing speed</span>
-            <div class="speed-options" id="speedOptions" role="radiogroup" aria-labelledby="speedLabel" aria-describedby="speedHint"></div>
-            <p class="field-hint" id="speedHint">How fast DocuType types into your document.</p>
-          </div>
+        <details class="settings">
+          <summary class="settings-summary">
+            <svg class="settings-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+              <path d="M3 6h5m4 0h5M3 14h9m4 0h1"/>
+              <circle cx="10" cy="6" r="2"/><circle cx="14" cy="14" r="2"/>
+            </svg>
+            <span>Typing settings</span>
+            <span class="settings-value" id="settingsValue"></span>
+            <svg class="settings-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m4 6 4 4 4-4"/>
+            </svg>
+          </summary>
+          <div class="settings-panel">
+            <fieldset class="field">
+              <legend class="field-label" id="speedLabel">Typing speed</legend>
+              <div class="speed-options" id="speedOptions" role="radiogroup" aria-labelledby="speedLabel" aria-describedby="speedHint"></div>
+              <p class="field-hint" id="speedHint">How fast DocuType types into your document.</p>
+            </fieldset>
 
-          <div class="field">
-            <span class="field-label" id="styleLabel">Typing errors</span>
-            <div class="style-options" id="styleOptions" role="radiogroup" aria-labelledby="styleLabel" aria-describedby="styleHint"></div>
-            <p class="field-hint style-hint" id="styleHint" aria-live="polite">A few errors may stay in the text. Other typos are backspaced and corrected.</p>
+            <fieldset class="field">
+              <legend class="field-label" id="styleLabel">Typing errors</legend>
+              <div class="style-options" id="styleOptions" role="radiogroup" aria-labelledby="styleLabel" aria-describedby="styleHint"></div>
+              <p class="field-hint style-hint" id="styleHint" aria-live="polite"></p>
+            </fieldset>
           </div>
-        </div>
+        </details>
 
         <p class="form-error" id="formError" role="alert" hidden></p>
 

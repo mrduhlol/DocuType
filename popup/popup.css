@@ -223,10 +223,10 @@ body {
 .passage-input {
   display: block;
   width: 100%;
-  height: 126px;
+  height: 200px;
   resize: vertical;
   min-height: 104px;
-  max-height: 220px;
+  max-height: 290px;
   border: 0;
   outline: none;
   background: transparent;
@@ -270,7 +270,7 @@ body {
   align-content: center;
   gap: 4px;
   width: 100%;
-  min-height: 132px;
+  min-height: 224px;
   padding: 14px;
   border: 1px dashed var(--accent);
   border-radius: 13px;
@@ -565,13 +565,13 @@ body {
 }
 
 .passage-panel {
-  margin: 10px;
-  border-radius: 7px;
+  border: 0;
+  border-radius: 0 0 11px 11px;
   box-shadow: none;
 }
 
 .field-head {
-  padding-top: 9px;
+  padding-top: 12px;
 }
 
 .passage-label {
@@ -581,7 +581,7 @@ body {
 
 .editor-hint {
   background: var(--bg);
-  border-radius: 0 0 6px 6px;
+  border-radius: 0 0 11px 11px;
 }
 
 .upload-panel {
@@ -593,62 +593,61 @@ body {
 }
 
 .settings {
-  display: grid;
-  gap: 10px;
-}
-
-.settings .field {
-  position: relative;
-  display: grid;
-  grid-template-columns: 82px minmax(0, 1fr);
-  align-items: start;
-  gap: 10px;
-}
-
-.settings .field-label {
-  padding-top: 7px;
-}
-
-.settings .speed-options,
-.settings .style-options {
-  margin-top: 0;
-  gap: 3px;
-  padding: 3px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--paper);
 }
 
-.settings .speed-option {
-  min-width: 0;
-  padding: 3px 2px;
-  border-color: transparent;
-  border-radius: 5px;
-}
-
-.settings .speed-option:hover,
-.settings .speed-option:has(input:checked) {
-  border-color: var(--accent);
-}
-
-.settings .speed-option-body {
+.settings-summary {
+  display: flex;
   align-items: center;
-  text-align: center;
-  gap: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 42px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  font-weight: 650;
+  cursor: pointer;
+  list-style: none;
 }
 
-.settings .speed-name {
-  font-size: 12px;
-}
-
-.settings .speed-option::after {
+.settings-summary::-webkit-details-marker {
   display: none;
 }
 
-.settings .style-hint {
-  grid-column: 2;
+.settings-summary:hover {
+  background: var(--track);
+}
+
+.settings-icon,
+.settings-chevron {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+}
+
+.settings-value {
+  margin-inline-start: auto;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings[open] .settings-chevron {
+  transform: rotate(180deg);
+}
+
+.settings-panel {
+  display: grid;
+  gap: 12px;
+  padding: 11px;
+  border-top: 1px solid var(--line);
+}
+
+.settings-panel .style-hint {
   min-height: 0;
-  margin: -5px 0 0;
 }
 
 .start-button {
@@ -658,20 +657,4 @@ body {
 .app-footer {
   border-top: 1px solid var(--line);
   background: var(--paper);
-}
-
-@media (max-width: 350px) {
-  .settings .field {
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-
-  .settings .field-label {
-    padding-top: 0;
-  }
-
-  .settings .style-hint {
-    grid-column: 1;
-    margin-top: 0;
-  }
 }
