@@ -314,7 +314,7 @@
     return dispatchBackspace(editor);
   }
 
-  function dispatchPaste(editor, character) {
+  function dispatchPaste(editor, character, html = `<span>${escapeHtml(character)}</span>`) {
     const view = getEventView(editor);
     if (
       !view ||
@@ -330,7 +330,7 @@
 
     try {
       const transfer = new view.DataTransfer();
-      transfer.setData("text/html", `<span>${escapeHtml(character)}</span>`);
+      transfer.setData("text/html", html);
       transfer.setData("text/plain", character);
 
       let event;
@@ -372,6 +372,24 @@
     }
   }
 
+  function insertPdfRow(editor, row, first) {
+    if (!first) {
+      const result = insertUnit(editor, "\n");
+      if (!result.ok) return result;
+    }
+    const points = (value) => `${Math.min(1440, Math.max(0, Number(value) || 0)).toFixed(2)}pt`;
+    const formatted = row.runs.map((run) => {
+      const font = String(run.font || "").replace(/[^\p{L}\p{N} ._-]/gu, "").slice(0, 100);
+      const family = font ? `font-family:'${font}';` : "";
+      const bold = run.bold ? "font-weight:bold;" : "";
+      const italic = run.italic ? "font-style:italic;" : "";
+      return `<span style="${family}font-size:${points(run.size)};${bold}${italic}white-space:pre-wrap">${escapeHtml(run.text)}</span>`;
+    }).join("");
+    const pageBreak = row.pageBreak ? "page-break-before:always;" : "";
+    const style = `margin: ${points(row.gap)} 0 0 ${points(row.indent)};line-height:${points(row.lineHeight)};${pageBreak}`;
+    return dispatchPaste(editor, row.runs.map((run) => run.text).join(""), `<p style="${style}">${formatted}</p>`);
+  }
+
   function insertUnit(editor, character) {
     if (!editor || typeof editor.dispatchEvent !== "function") {
       return {
@@ -404,5 +422,6 @@
     findEditor,
     insertUnit,
     insertBackspace,
+    insertPdfRow,
   });
 });

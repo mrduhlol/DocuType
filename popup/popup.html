@@ -61,6 +61,16 @@
           <p class="field-hint editor-hint" id="passageHint">Place your cursor in Google Docs before you start.</p>
         </div>
 
+        <fieldset class="field">
+          <legend class="field-label">Upload</legend>
+          <div class="pdf-drop" id="pdfDrop">
+            <button class="pdf-choose" id="pdfChoose" type="button">Choose PDF</button>
+            <span>or drag and drop here</span>
+            <input id="pdfFile" type="file" accept=".pdf,application/pdf" hidden />
+          </div>
+          <p class="field-hint" id="pdfStatus" aria-live="polite">Use a blank Google Doc. Uploading starts a formatted import.</p>
+        </fieldset>
+
         <fieldset class="field speed-field">
           <legend class="field-label" id="speedLabel">Typing speed</legend>
           <div class="speed-options" id="speedOptions" role="radiogroup" aria-labelledby="speedLabel" aria-describedby="speedHint"></div>

@@ -51,6 +51,30 @@ body {
 .app {
   padding:0
 }
+.pdf-drop {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:9px 12px;
+  border:1px dashed var(--line);
+  border-radius:8px;
+  color:var(--muted);
+}
+.pdf-drop.is-dragging,
+.pdf-drop:focus-within {
+  border-color:var(--accent);
+  background:var(--soft);
+}
+.pdf-choose {
+  padding:5px 9px;
+  font:inherit;
+  font-weight:650;
+  color:var(--accent);
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-radius:5px;
+  cursor:pointer;
+}
 .app-header {
   padding:14px 22px;
   background:var(--paper);

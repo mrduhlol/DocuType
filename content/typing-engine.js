@@ -233,6 +233,10 @@
         total: this._characters.length,
       });
 
+      if (this._state !== "running" || this._destroyed) {
+        return;
+      }
+
       if (this._index >= this._characters.length) {
         this._setState("complete");
         this._onComplete();

@@ -40,6 +40,7 @@ Reload the temporary add-on after each Firefox restart.
 ## Features
 
 - **Type into Google Docs:** paste up to 10,000 characters, place your cursor in an editable document, and click **Start typing**.
+- **Import a PDF:** open a blank Google Doc, place your cursor, then choose a PDF or drop it in **Upload**. DocuType imports selectable text one line at a time at the selected speed and replaces images with numbered markers. Fonts and spacing depend on what Google Docs supports. PDFs are processed locally.
 - **Three speeds:** Gentle (30 WPM), Steady (45 WPM), and Quick (65 WPM), with natural pauses and varied timing.
 - **Writing style (Errors):** Clean adds no errors; Small, Medium, and More add increasing amounts of mistakes. Some typos are backspaced and corrected; others remain in the text. Google Docs autocorrect may change them.
 - **Live controls:** pause, resume, stop, or change speed from the floating control bar. Approximate progress shows how much has been typed.

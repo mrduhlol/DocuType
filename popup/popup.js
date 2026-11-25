@@ -91,6 +91,10 @@
       contextBanner: document.getElementById("contextBanner"),
       contextText: document.getElementById("contextText"),
       openDocsLink: document.getElementById("openDocsLink"),
+      pdfChoose: document.getElementById("pdfChoose"),
+      pdfDrop: document.getElementById("pdfDrop"),
+      pdfFile: document.getElementById("pdfFile"),
+      pdfStatus: document.getElementById("pdfStatus"),
     };
   }
 
@@ -204,6 +208,9 @@
 
   function setInFlight(value) {
     state.inFlight = value;
+    if (elements.pdfChoose) {
+      elements.pdfChoose.disabled = value;
+    }
     elements.startButton.classList.toggle("is-loading", value);
     elements.startLabel.textContent = value ? "Starting…" : "Start typing";
     elements.startIcon.innerHTML = value ? SPINNER_ICON : ARROW_ICON;
@@ -335,6 +342,53 @@
     }
   }
 
+  async function uploadPdf(files) {
+    if (!files?.length || state.inFlight) return;
+    clearError();
+    const [file] = files;
+    if (files.length !== 1 || !(/\.pdf$/i.test(file.name) || file.type === "application/pdf")) {
+      showError("Choose one PDF file.");
+      return;
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      showError("Choose a PDF smaller than 25 MB.");
+      return;
+    }
+    setInFlight(true);
+    elements.pdfStatus.textContent = `Reading ${file.name}…`;
+    try {
+      const check = await refreshTabState();
+      if (!check.ok) {
+        showError(BANNER_COPY[check.reason] || BANNER_COPY.QUERY_FAILED);
+        return;
+      }
+      let pdfRows;
+      try {
+        const { readPdf } = await import("../lib/pdf-import.mjs");
+        pdfRows = await readPdf(file, shared.MAX_TEXT_LENGTH);
+      } catch (error) {
+        showError(error.message || "DocuType couldn't read this PDF.");
+        return;
+      }
+      await injectContentScripts(check.tab.id);
+      const response = await extensionApi.tabs.sendMessage(check.tab.id, {
+        type: shared.START_SESSION_MESSAGE,
+        pdfRows,
+        wpm: getSelectedWpm(),
+      });
+      if (response?.ok) {
+        window.close();
+      } else {
+        showError(CONTENT_ERROR_COPY[response?.code] || CONTENT_ERROR_COPY.START_FAILED);
+      }
+    } catch (error) {
+      showError(describeStartError(error));
+    } finally {
+      elements.pdfStatus.textContent = "Use a blank Google Doc. Uploading starts a formatted import.";
+      setInFlight(false);
+    }
+  }
+
   function bindEvents() {
     elements.passage.addEventListener("input", () => {
       updateCharCount();
@@ -344,6 +398,31 @@
 
     elements.styleOptions.addEventListener("change", updateStyleHint);
     elements.form.addEventListener("submit", handleSubmit);
+
+    if (!elements.pdfDrop) return;
+    elements.pdfChoose.addEventListener("click", () => elements.pdfFile.click());
+    elements.pdfFile.addEventListener("change", () => {
+      uploadPdf(elements.pdfFile.files);
+      elements.pdfFile.value = "";
+    });
+    document.addEventListener("dragover", (event) => {
+      if (event.dataTransfer?.types.includes("Files")) event.preventDefault();
+    });
+    document.addEventListener("drop", (event) => {
+      if (event.dataTransfer?.files.length) event.preventDefault();
+    });
+    elements.pdfDrop.addEventListener("dragover", (event) => {
+      if (!event.dataTransfer?.types.includes("Files")) return;
+      event.dataTransfer.dropEffect = state.inFlight ? "none" : "copy";
+      elements.pdfDrop.classList.toggle("is-dragging", !state.inFlight);
+    });
+    elements.pdfDrop.addEventListener("dragleave", (event) => {
+      if (!elements.pdfDrop.contains(event.relatedTarget)) elements.pdfDrop.classList.remove("is-dragging");
+    });
+    elements.pdfDrop.addEventListener("drop", (event) => {
+      elements.pdfDrop.classList.remove("is-dragging");
+      if (event.dataTransfer) uploadPdf(event.dataTransfer.files);
+    });
   }
 
   async function init() {

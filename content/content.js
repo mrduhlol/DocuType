@@ -43,9 +43,15 @@
     }
   }
 
-  function createSession(text, wpm, editor, level) {
-    const plan = humanize.buildTypingPlan(text, { level });
+  function createSession(text, wpm, editor, level, pdfRows) {
+    const plan = pdfRows ? text : humanize.buildTypingPlan(text, { level });
     const total = shared.countCharacters(plan);
+    const rowStarts = new Map();
+    let offset = 1;
+    for (const row of pdfRows || []) {
+      rowStarts.set(offset, row);
+      offset += shared.countCharacters(row.runs.map((run) => run.text).join("")) + 1;
+    }
     let bar = null;
     let engine = null;
     let session = null;
@@ -97,11 +103,14 @@
         wpm,
         initialDelayMs: INITIAL_DELAY_MS,
         onReveal({ char, index, total }) {
+          const row = rowStarts.get(index);
           const result =
-            char === shared.BACKSPACE_MARKER
+            pdfRows
+              ? row && docsInput.insertPdfRow(editor, row, index === 1)
+              : char === shared.BACKSPACE_MARKER
               ? docsInput.insertBackspace(editor)
               : docsInput.insertUnit(editor, char);
-          if (!result.ok) {
+          if (result && !result.ok) {
             engine.stop();
             bar.setError(result.message);
             return;
@@ -141,7 +150,14 @@
       return { ok: false, code: "NOT_DOCS" };
     }
 
-    const text = shared.normalizePassage(message && message.text);
+    const pdfRows = Array.isArray(message.pdfRows) ? message.pdfRows : null;
+    if (pdfRows && !pdfRows.every((row) => Array.isArray(row?.runs) &&
+      row.runs.length > 0 && row.runs.every((run) => typeof run?.text === "string"))) {
+      return { ok: false, code: "START_FAILED" };
+    }
+    const text = pdfRows
+      ? pdfRows.map((row) => row.runs.map((run) => run.text).join("")).join("\n")
+      : shared.normalizePassage(message.text);
     if (!text) {
       return { ok: false, code: "EMPTY_TEXT" };
     }
@@ -166,7 +182,7 @@
       previousSession.destroy();
     }
 
-    const session = createSession(text, wpm, editor, level);
+    const session = createSession(text, wpm, editor, level, pdfRows);
     if (!session) {
       return { ok: false, code: "START_FAILED" };
     }
