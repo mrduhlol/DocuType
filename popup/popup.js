@@ -14,6 +14,7 @@
     "lib/browser-api.js",
     "content/typing-engine.js",
     "content/docs-input.js",
+    "content/pdf-page-setup.js",
     "content/control-bar-styles.js",
     "content/control-bar.js",
     "content/content.js",
@@ -46,6 +47,10 @@
       "Google Docs rejected the text. Make sure the document is editable and try again.",
     TYPE_FAILED: "DocuType couldn't type into this document. Reload the page and try again.",
     START_FAILED: "DocuType couldn't start typing. Reload the document and try again.",
+    PDF_LAYOUT_FAILED:
+      "DocuType couldn't set up the page. Open a blank Google Doc in Pages mode, then try again.",
+    PDF_LAYOUT_UNAVAILABLE:
+      "DocuType couldn't open Page setup. Use a blank Google Doc with an English interface, then try again.",
     TAB_NOT_READY: "This tab isn't ready yet. Give the document a moment, then try again.",
   };
 
@@ -71,6 +76,9 @@
     ready: false,
     tab: null,
     inFlight: false,
+    mode: "passage",
+    pdfFile: null,
+    styles: { upload: 0 },
   };
 
   let elements = null;
@@ -91,9 +99,14 @@
       contextBanner: document.getElementById("contextBanner"),
       contextText: document.getElementById("contextText"),
       openDocsLink: document.getElementById("openDocsLink"),
-      pdfChoose: document.getElementById("pdfChoose"),
+      passageMode: document.getElementById("passageMode"),
+      uploadMode: document.getElementById("uploadMode"),
+      passagePanel: document.getElementById("passagePanel"),
+      uploadPanel: document.getElementById("uploadPanel"),
       pdfDrop: document.getElementById("pdfDrop"),
       pdfFile: document.getElementById("pdfFile"),
+      pdfChooseLabel: document.getElementById("pdfChooseLabel"),
+      pdfName: document.getElementById("pdfName"),
       pdfStatus: document.getElementById("pdfStatus"),
     };
   }
@@ -171,7 +184,10 @@
   }
 
   function updateStyleHint() {
-    elements.styleHint.textContent = STYLE_HINTS[getSelectedStyle()];
+    const style = getSelectedStyle();
+    elements.styleHint.textContent = state.mode === "upload" && style === 0
+      ? "Types the PDF text without adding mistakes."
+      : STYLE_HINTS[style];
   }
 
   function updateCharCount() {
@@ -180,8 +196,10 @@
   }
 
   function updateStartState() {
-    const hasText = shared.normalizePassage(elements.passage.value).length > 0;
-    elements.startButton.disabled = state.inFlight || !state.ready || !hasText;
+    const hasInput = state.mode === "upload"
+      ? Boolean(state.pdfFile)
+      : shared.normalizePassage(elements.passage.value).length > 0;
+    elements.startButton.disabled = state.inFlight || !state.ready || !hasInput;
   }
 
   function showBanner(message) {
@@ -208,9 +226,11 @@
 
   function setInFlight(value) {
     state.inFlight = value;
-    if (elements.pdfChoose) {
-      elements.pdfChoose.disabled = value;
-    }
+    elements.pdfDrop.disabled = value;
+    elements.passageMode.disabled = value;
+    elements.uploadMode.disabled = value;
+    elements.speedOptions.closest("fieldset").disabled = value;
+    elements.styleOptions.closest("fieldset").disabled = value;
     elements.startButton.classList.toggle("is-loading", value);
     elements.startLabel.textContent = value ? "Starting…" : "Start typing";
     elements.startIcon.innerHTML = value ? SPINNER_ICON : ARROW_ICON;
@@ -299,53 +319,90 @@
 
     clearError();
 
-    const text = shared.normalizePassage(elements.passage.value);
-    if (!text) {
+    const file = state.mode === "upload" ? state.pdfFile : null;
+    const text = file ? "" : shared.normalizePassage(elements.passage.value);
+    if (state.mode === "upload" && !file) {
+      showError("Choose a PDF before starting.");
+      elements.pdfDrop.focus();
+      return;
+    }
+    if (!file && !text) {
       showError(CONTENT_ERROR_COPY.EMPTY_TEXT);
       elements.passage.focus();
       return;
     }
 
-    if (!state.ready || !state.tab) {
-      const check = await refreshTabState();
-      if (!check.ok) {
-        showError(BANNER_COPY[check.reason] || BANNER_COPY.QUERY_FAILED);
-        return;
-      }
-    }
-
-    const tab = state.tab;
     const wpm = getSelectedWpm();
     const humanizeLevel = getSelectedStyle();
     setInFlight(true);
 
     try {
+      const check = state.ready && state.tab ? { ok: true, tab: state.tab } : await refreshTabState();
+      if (!check.ok) {
+        showError(BANNER_COPY[check.reason] || BANNER_COPY.QUERY_FAILED);
+        return;
+      }
+
+      let source = { text };
+      if (file) {
+        elements.pdfStatus.textContent = "Reading PDF…";
+        try {
+          const { readPdf } = await import("../lib/pdf-import.mjs");
+          const pdfRows = await readPdf(file, shared.MAX_TEXT_LENGTH);
+          source = { pdfRows, pdfLayout: pdfRows.layout };
+        } catch (error) {
+          showError(error.message || "DocuType couldn't read this PDF.");
+          return;
+        }
+        elements.pdfStatus.textContent = "Setting up the Google Doc…";
+      }
+
+      const { tab } = check;
       await injectContentScripts(tab.id);
 
       const response = await extensionApi.tabs.sendMessage(tab.id, {
         type: shared.START_SESSION_MESSAGE,
-        text,
+        ...source,
         wpm,
         humanizeLevel,
       });
 
       if (!response || response.ok !== true) {
         showError(CONTENT_ERROR_COPY[response && response.code] || CONTENT_ERROR_COPY.START_FAILED);
-        setInFlight(false);
         return;
       }
 
       window.close();
     } catch (error) {
       showError(describeStartError(error));
+    } finally {
+      if (file) {
+        elements.pdfStatus.textContent = "Place your cursor in a blank Google Doc before starting.";
+      }
       setInFlight(false);
     }
   }
 
-  async function uploadPdf(files) {
-    if (!files?.length || state.inFlight) return;
+  function switchMode(mode) {
+    if (state.inFlight || state.mode === mode) return;
+    state.styles[state.mode] = getSelectedStyle();
+    state.mode = mode;
+    const uploading = mode === "upload";
+    elements.passageMode.setAttribute("aria-pressed", String(!uploading));
+    elements.uploadMode.setAttribute("aria-pressed", String(uploading));
+    elements.passagePanel.hidden = uploading;
+    elements.uploadPanel.hidden = !uploading;
+    elements.form.querySelector(`input[name="style"][value="${state.styles[mode]}"]`).checked = true;
+    updateStyleHint();
+    updateStartState();
     clearError();
-    const [file] = files;
+  }
+
+  function selectPdf(files) {
+    if (!files?.length || state.inFlight) return;
+    switchMode("upload");
+    clearError();
+    const file = files[0];
     if (files.length !== 1 || !(/\.pdf$/i.test(file.name) || file.type === "application/pdf")) {
       showError("Choose one PDF file.");
       return;
@@ -354,39 +411,11 @@
       showError("Choose a PDF smaller than 25 MB.");
       return;
     }
-    setInFlight(true);
-    elements.pdfStatus.textContent = `Reading ${file.name}…`;
-    try {
-      const check = await refreshTabState();
-      if (!check.ok) {
-        showError(BANNER_COPY[check.reason] || BANNER_COPY.QUERY_FAILED);
-        return;
-      }
-      let pdfRows;
-      try {
-        const { readPdf } = await import("../lib/pdf-import.mjs");
-        pdfRows = await readPdf(file, shared.MAX_TEXT_LENGTH);
-      } catch (error) {
-        showError(error.message || "DocuType couldn't read this PDF.");
-        return;
-      }
-      await injectContentScripts(check.tab.id);
-      const response = await extensionApi.tabs.sendMessage(check.tab.id, {
-        type: shared.START_SESSION_MESSAGE,
-        pdfRows,
-        wpm: getSelectedWpm(),
-      });
-      if (response?.ok) {
-        window.close();
-      } else {
-        showError(CONTENT_ERROR_COPY[response?.code] || CONTENT_ERROR_COPY.START_FAILED);
-      }
-    } catch (error) {
-      showError(describeStartError(error));
-    } finally {
-      elements.pdfStatus.textContent = "Use a blank Google Doc. Uploading starts a formatted import.";
-      setInFlight(false);
-    }
+    state.pdfFile = file;
+    elements.pdfName.hidden = false;
+    elements.pdfName.textContent = file.name;
+    elements.pdfChooseLabel.textContent = "Replace PDF";
+    updateStartState();
   }
 
   function bindEvents() {
@@ -399,17 +428,21 @@
     elements.styleOptions.addEventListener("change", updateStyleHint);
     elements.form.addEventListener("submit", handleSubmit);
 
-    if (!elements.pdfDrop) return;
-    elements.pdfChoose.addEventListener("click", () => elements.pdfFile.click());
+    elements.passageMode.addEventListener("click", () => switchMode("passage"));
+    elements.uploadMode.addEventListener("click", () => switchMode("upload"));
+    elements.pdfDrop.addEventListener("click", () => elements.pdfFile.click());
     elements.pdfFile.addEventListener("change", () => {
-      uploadPdf(elements.pdfFile.files);
+      selectPdf(elements.pdfFile.files);
       elements.pdfFile.value = "";
     });
     document.addEventListener("dragover", (event) => {
       if (event.dataTransfer?.types.includes("Files")) event.preventDefault();
     });
     document.addEventListener("drop", (event) => {
-      if (event.dataTransfer?.files.length) event.preventDefault();
+      if (!event.dataTransfer?.files.length) return;
+      event.preventDefault();
+      elements.pdfDrop.classList.remove("is-dragging");
+      selectPdf(event.dataTransfer.files);
     });
     elements.pdfDrop.addEventListener("dragover", (event) => {
       if (!event.dataTransfer?.types.includes("Files")) return;
@@ -418,10 +451,6 @@
     });
     elements.pdfDrop.addEventListener("dragleave", (event) => {
       if (!elements.pdfDrop.contains(event.relatedTarget)) elements.pdfDrop.classList.remove("is-dragging");
-    });
-    elements.pdfDrop.addEventListener("drop", (event) => {
-      elements.pdfDrop.classList.remove("is-dragging");
-      if (event.dataTransfer) uploadPdf(event.dataTransfer.files);
     });
   }
 

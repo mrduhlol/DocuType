@@ -6,6 +6,7 @@ const {
   getKeyDescriptor,
   getBackspaceDescriptor,
   insertBackspace,
+  insertPdfCharacter,
 } = require("../content/docs-input.js");
 
 test("escapes characters used in the paste HTML", () => {
@@ -122,4 +123,49 @@ test("insertBackspace rejects a missing editor", () => {
   const result = insertBackspace(null);
   assert.equal(result.ok, false);
   assert.equal(result.code, "EDITOR_NOT_FOUND");
+});
+
+test("a PDF tick inserts one styled character, with paragraph formatting on the first tick", () => {
+  const transfers = [];
+  const view = {
+    DataTransfer: class extends Map {
+      setData(type, value) {
+        this.set(type, value);
+      }
+    },
+    ClipboardEvent: class {
+      constructor(type, init) {
+        this.type = type;
+        Object.assign(this, init);
+      }
+    },
+  };
+  const editor = {
+    ownerDocument: { defaultView: view },
+    focus() {},
+    dispatchEvent(event) {
+      event.defaultPrevented = true;
+      transfers.push(event.clipboardData);
+    },
+  };
+  const run = { font: "Times New Roman", size: 12, bold: true, italic: true, underline: true, strikethrough: true };
+  const row = {
+    alignment: "center",
+    lineHeight: 18,
+    gap: 4,
+    border: { width: 1, color: "#123456", top: true, bottom: false },
+  };
+
+  assert.deepEqual(insertPdfCharacter(editor, "&", run, row), { ok: true });
+  assert.deepEqual(insertPdfCharacter(editor, "a", { ...run, underline: false, strikethrough: false }), { ok: true });
+  assert.deepEqual(transfers.map((transfer) => transfer.get("text/plain")), ["&", "a"]);
+  const first = transfers[0].get("text/html");
+  assert.match(first, /text-align:center/);
+  assert.match(first, /line-height:18\.00pt/);
+  assert.match(first, /border-top:1\.00pt solid #123456/);
+  assert.doesNotMatch(first, /border-bottom/);
+  assert.match(first, /font-family:'Times New Roman';font-size:12\.00pt;/);
+  assert.match(first, /font-weight:bold;font-style:italic;text-decoration:underline line-through/);
+  assert.match(first, /&amp;/);
+  assert.match(transfers[1].get("text/html"), /^<span .*text-decoration:none/);
 });

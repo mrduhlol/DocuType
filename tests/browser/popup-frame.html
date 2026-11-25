@@ -16,6 +16,7 @@
           "lib/browser-api.js",
           "content/typing-engine.js",
           "content/docs-input.js",
+          "content/pdf-page-setup.js",
           "content/control-bar-styles.js",
           "content/control-bar.js",
           "content/content.js",
@@ -271,6 +272,43 @@
               const checked = document.querySelector('input[name="style"]:checked');
               assert(checked, "A writing style should be preselected");
               assertEqual(checked.value, "1", "Small should be the default style");
+            });
+
+            await test("lets users stage a PDF and configure it before typing", async () => {
+              const upload = document.getElementById("uploadMode");
+              const passageMode = document.getElementById("passageMode");
+              const fileInput = document.getElementById("pdfFile");
+              const fileName = document.getElementById("pdfName");
+              const transfer = new DataTransfer();
+              transfer.items.add(new File(["sample"], "chosen.pdf", { type: "application/pdf" }));
+              assert(document.getElementById("uploadPanel").hidden, "Upload panel should start hidden");
+              upload.click();
+              assertEqual(upload.getAttribute("aria-pressed"), "true");
+              assert(document.getElementById("passagePanel").hidden, "Upload should replace the passage panel");
+              assertEqual(document.querySelector('input[name="style"]:checked').value, "0");
+              assert(startButton().disabled, "A PDF must be selected before Start is enabled");
+
+              fileInput.files = transfer.files;
+              fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+              assertEqual(fileName.textContent, "chosen.pdf");
+              assert(!startButton().disabled, "Selecting a PDF should enable Start");
+              assertEqual(mock.calls.messages.length, 0, "Selecting a PDF must not start typing");
+
+              selectStyle(2);
+              passageMode.click();
+              assertEqual(document.querySelector('input[name="style"]:checked').value, "1");
+              const dropped = new DataTransfer();
+              dropped.items.add(new File(["sample"], "dropped.pdf", { type: "application/pdf" }));
+              document.body.dispatchEvent(new DragEvent("drop", {
+                bubbles: true,
+                cancelable: true,
+                dataTransfer: dropped,
+              }));
+              assertEqual(upload.getAttribute("aria-pressed"), "true");
+              assertEqual(fileName.textContent, "dropped.pdf");
+              assertEqual(document.querySelector('input[name="style"]:checked').value, "2");
+              assertEqual(mock.calls.messages.length, 0, "Dropping a PDF must not start typing");
+              passageMode.click();
             });
 
             await test("uses the approved icon and identifies error controls", async () => {

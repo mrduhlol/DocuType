@@ -372,22 +372,37 @@
     }
   }
 
-  function insertPdfRow(editor, row, first) {
-    if (!first) {
-      const result = insertUnit(editor, "\n");
-      if (!result.ok) return result;
+  function points(value) {
+    return `${Math.min(1440, Math.max(0, Number(value) || 0)).toFixed(2)}pt`;
+  }
+
+  function color(value) {
+    return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value : "#000000";
+  }
+
+  function formatParagraph(row) {
+    const alignment = ["left", "center", "right", "justify"].includes(row.alignment) ? row.alignment : "left";
+    const lineHeight = row.lineHeight > 0 ? points(row.lineHeight) : "normal";
+    let style = `margin:${points(row.gap)} ${points(row.rightIndent)} 0 ${points(row.indent)};line-height:${lineHeight};text-align:${alignment};`;
+    if (alignment === "justify") style += "text-align-last:justify;";
+    if (row.pageBreak) style += "page-break-before:always;";
+    if (row.border?.width > 0) {
+      const stroke = `${points(row.border.width)} solid ${color(row.border.color)}`;
+      style += `border-left:${stroke};border-right:${stroke};`;
+      if (row.border.top) style += `border-top:${stroke};`;
+      if (row.border.bottom) style += `border-bottom:${stroke};`;
     }
-    const points = (value) => `${Math.min(1440, Math.max(0, Number(value) || 0)).toFixed(2)}pt`;
-    const formatted = row.runs.map((run) => {
-      const font = String(run.font || "").replace(/[^\p{L}\p{N} ._-]/gu, "").slice(0, 100);
-      const family = font ? `font-family:'${font}';` : "";
-      const bold = run.bold ? "font-weight:bold;" : "";
-      const italic = run.italic ? "font-style:italic;" : "";
-      return `<span style="${family}font-size:${points(run.size)};${bold}${italic}white-space:pre-wrap">${escapeHtml(run.text)}</span>`;
-    }).join("");
-    const pageBreak = row.pageBreak ? "page-break-before:always;" : "";
-    const style = `margin: ${points(row.gap)} 0 0 ${points(row.indent)};line-height:${points(row.lineHeight)};${pageBreak}`;
-    return dispatchPaste(editor, row.runs.map((run) => run.text).join(""), `<p style="${style}">${formatted}</p>`);
+    return style;
+  }
+
+  function insertPdfCharacter(editor, character, run, row) {
+    const font = String(run.font || "").replace(/[^\p{L}\p{N} ._-]/gu, "").slice(0, 100);
+    const family = font ? `font-family:'${font}';` : "";
+    const size = points(run.size > 0 ? run.size : 11);
+    const decoration = [run.underline && "underline", run.strikethrough && "line-through"].filter(Boolean).join(" ");
+    const style = `${family}font-size:${size};font-weight:${run.bold ? "bold" : "normal"};font-style:${run.italic ? "italic" : "normal"};text-decoration:${decoration || "none"};color:${color(run.color)};white-space:pre-wrap;`;
+    const span = `<span style="${style}">${escapeHtml(character)}</span>`;
+    return dispatchPaste(editor, character, row ? `<p style="${formatParagraph(row)}">${span}</p>` : span);
   }
 
   function insertUnit(editor, character) {
@@ -422,6 +437,6 @@
     findEditor,
     insertUnit,
     insertBackspace,
-    insertPdfRow,
+    insertPdfCharacter,
   });
 });

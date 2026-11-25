@@ -34,6 +34,7 @@
 
   const INITIAL_DELAY_MS = 1200;
   let activeSession = null;
+  let preparingPdf = false;
 
   function isSupportedPage() {
     try {
@@ -43,15 +44,36 @@
     }
   }
 
-  function createSession(text, wpm, editor, level, pdfRows) {
-    const plan = pdfRows ? text : humanize.buildTypingPlan(text, { level });
-    const total = shared.countCharacters(plan);
-    const rowStarts = new Map();
-    let offset = 1;
-    for (const row of pdfRows || []) {
-      rowStarts.set(offset, row);
-      offset += shared.countCharacters(row.runs.map((run) => run.text).join("")) + 1;
+  function buildPdfPlan(rows, level, border) {
+    const units = [];
+    const parts = [];
+    for (const [index, row] of rows.entries()) {
+      const startsPage = index === 0 || row.pageBreak;
+      const endsPage = index === rows.length - 1 || rows[index + 1].pageBreak;
+      const paragraph = border?.width > 0
+        ? { ...row, border: { ...border, top: startsPage, bottom: endsPage } }
+        : row;
+      if (index > 0) {
+        parts.push("\n");
+        units.push(null);
+      }
+      let first = true;
+      for (const run of row.runs) {
+        const text = /^\(img \d+\)$/.test(run.text) ? run.text : humanize.buildTypingPlan(run.text, { level });
+        parts.push(text);
+        for (const character of text) {
+          units.push({ run, paragraph: first ? paragraph : undefined });
+          first = false;
+        }
+      }
     }
+    return { text: parts.join(""), units };
+  }
+
+  function createSession(text, wpm, editor, level, pdfRows, layout) {
+    const pdf = pdfRows ? buildPdfPlan(pdfRows, level, layout?.border) : null;
+    const plan = pdf ? pdf.text : humanize.buildTypingPlan(text, { level });
+    const total = shared.countCharacters(plan);
     let bar = null;
     let engine = null;
     let session = null;
@@ -103,14 +125,14 @@
         wpm,
         initialDelayMs: INITIAL_DELAY_MS,
         onReveal({ char, index, total }) {
-          const row = rowStarts.get(index);
+          const unit = pdf?.units[index - 1];
           const result =
-            pdfRows
-              ? row && docsInput.insertPdfRow(editor, row, index === 1)
-              : char === shared.BACKSPACE_MARKER
+            char === shared.BACKSPACE_MARKER
               ? docsInput.insertBackspace(editor)
-              : docsInput.insertUnit(editor, char);
-          if (result && !result.ok) {
+              : unit
+                ? docsInput.insertPdfCharacter(editor, char, unit.run, unit.paragraph)
+                : docsInput.insertUnit(editor, char);
+          if (!result.ok) {
             engine.stop();
             bar.setError(result.message);
             return;
@@ -150,6 +172,10 @@
       return { ok: false, code: "NOT_DOCS" };
     }
 
+    if (preparingPdf) {
+      return { ok: false, code: "PDF_LAYOUT_FAILED" };
+    }
+
     const pdfRows = Array.isArray(message.pdfRows) ? message.pdfRows : null;
     if (pdfRows && !pdfRows.every((row) => Array.isArray(row?.runs) &&
       row.runs.length > 0 && row.runs.every((run) => typeof run?.text === "string"))) {
@@ -176,19 +202,36 @@
       return { ok: false, code: "EDITOR_NOT_FOUND" };
     }
 
+    const prepare = namespace.pdfPageSetup?.prepare;
+    if (pdfRows && typeof prepare !== "function") {
+      return { ok: false, code: "PDF_LAYOUT_UNAVAILABLE" };
+    }
+
     if (activeSession) {
       const previousSession = activeSession;
       activeSession = null;
       previousSession.destroy();
     }
 
-    const session = createSession(text, wpm, editor, level, pdfRows);
-    if (!session) {
-      return { ok: false, code: "START_FAILED" };
+    function beginTyping(nextEditor = editor) {
+      const session = createSession(text, wpm, nextEditor, level, pdfRows, message.pdfLayout);
+      if (!session) return { ok: false, code: "START_FAILED" };
+      activeSession = session;
+      return { ok: true };
     }
 
-    activeSession = session;
-    return { ok: true };
+    if (!pdfRows) return beginTyping();
+
+    preparingPdf = true;
+    return Promise.resolve()
+      .then(() => prepare({ editor, layout: message.pdfLayout, rows: pdfRows }))
+      .then((result) => {
+        if (result?.ok === false) return result;
+        const nextEditor = docsInput.findEditor(root.document);
+        return nextEditor ? beginTyping(nextEditor) : { ok: false, code: "EDITOR_NOT_FOUND" };
+      })
+      .catch(() => ({ ok: false, code: "PDF_LAYOUT_FAILED" }))
+      .finally(() => { preparingPdf = false; });
   }
 
   function handleMessage(message, sender, sendResponse) {
@@ -196,7 +239,12 @@
       return false;
     }
 
-    sendResponse(startSession(message));
+    const result = startSession(message);
+    if (result instanceof Promise) {
+      result.then(sendResponse);
+      return true;
+    }
+    sendResponse(result);
     return false;
   }
 
