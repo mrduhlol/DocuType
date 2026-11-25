@@ -18,7 +18,7 @@
   ];
 
   function text(element) {
-    return element?.textContent.trim().replace(/\s+/g, " ") || "";
+    return (element?.textContent || "").replace(/[\u200b-\u200f\u2066-\u2069]/g, "").trim().replace(/\s+/g, " ");
   }
 
   function visible(element) {
@@ -53,9 +53,15 @@
 
   function getLabel(element) {
     const ids = (element.getAttribute("aria-labelledby") || "").split(/\s+/);
-    const references = ids.map((id) => text(element.ownerDocument.getElementById(id)));
+    const references = ids.filter(Boolean).map((id) => text(element.ownerDocument.getElementById(id)));
     return [element.getAttribute("aria-label"), element.title, element.id, element.name,
       ...references, ...Array.from(element.labels || [], text)].filter(Boolean).join(" ");
+  }
+
+  function isPageSetupItem(element) {
+    const label = element.querySelector?.(".goog-menuitem-content, .goog-menuitem-label");
+    return [text(label), text(element), element.getAttribute("aria-label"), element.title]
+      .some((value) => /^page setup(?:\s|[.…:]|$)/i.test((value || "").trim()));
   }
 
   function getMargins(dialog) {
@@ -114,20 +120,31 @@
     }
 
     const documentRef = root.document;
-    const file = find(documentRef, "#docs-file-menu, [role=menuitem]", (element) =>
-      element.id === "docs-file-menu" || text(element) === "File");
-    if (!file) return { ok: false, code: "PDF_LAYOUT_UNAVAILABLE" };
-    openControl(file);
-    const item = await waitFor(() => find(documentRef, "[role=menuitem], .goog-menuitem",
-      (element) => /^Page setup(?:\s|$)/i.test(text(element))));
-    if (!item) {
-      editor.focus();
-      return { ok: false, code: "PDF_LAYOUT_UNAVAILABLE" };
+    const findDialog = () => find(documentRef, "[role=dialog], .modal-dialog, .docs-dialog",
+      (element) => /page setup/i.test(text(element) + " " + getLabel(element)));
+    const findItem = () => find(documentRef, "[role=menuitem], .goog-menuitem", isPageSetupItem);
+    let dialog = findDialog();
+    if (!dialog) {
+      const file = find(documentRef, "#docs-file-menu, [role=menuitem]", (element) =>
+        element.id === "docs-file-menu" || text(element) === "File");
+      if (!file) return { ok: false, code: "PDF_LAYOUT_UNAVAILABLE" };
+      if (!findItem() && file.getAttribute("aria-expanded") !== "true") openControl(file);
+      const item = await waitFor(findItem);
+      if (item) {
+        const target = item.querySelector?.(".goog-menuitem-content, .goog-menuitem-label") || item;
+        openControl(target);
+        dialog = await waitFor(findDialog);
+        if (!dialog && target !== item && visible(item)) {
+          openControl(item);
+          dialog = await waitFor(findDialog);
+        }
+      }
+      if (!dialog) {
+        if (file.getAttribute("aria-expanded") === "true" || findItem()) openControl(file);
+        editor.focus();
+        return { ok: false, code: "PDF_LAYOUT_UNAVAILABLE" };
+      }
     }
-    openControl(item);
-    const dialog = await waitFor(() => find(documentRef, "[role=dialog], .modal-dialog",
-      (element) => /Page setup/i.test(text(element))));
-    if (!dialog) return { ok: false, code: "PDF_LAYOUT_UNAVAILABLE" };
 
     const button = (label) => find(dialog, "button, [role=button]", (element) =>
       text(element).toLowerCase() === label);

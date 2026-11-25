@@ -40,7 +40,8 @@ test("applies matched paper size and named margins before restoring the editor",
     },
   });
   const file = element("File", { id: "docs-file-menu", click() { menuOpen = true; } });
-  const item = element("Page setup", { click() { dialogOpen = true; } });
+  const menuLabel = element("Page setup…", { click() { dialogOpen = true; } });
+  const item = element("Icon Page setup…", { querySelector() { return menuLabel; } });
   const dialog = element("Page setup Margins (inches)", {
     getClientRects: () => dialogOpen ? [1] : [],
     querySelectorAll(selector) {
