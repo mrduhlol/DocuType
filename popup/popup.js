@@ -88,6 +88,7 @@
       form: document.getElementById("sessionForm"),
       passage: document.getElementById("passage"),
       charCount: document.getElementById("charCount"),
+      settingsValue: document.getElementById("settingsValue"),
       speedOptions: document.getElementById("speedOptions"),
       styleOptions: document.getElementById("styleOptions"),
       styleHint: document.getElementById("styleHint"),
@@ -183,8 +184,14 @@
     updateStyleHint();
   }
 
+  function updateSettingsSummary() {
+    const style = shared.HUMANIZE_LEVELS.find((level) => level.value === getSelectedStyle());
+    elements.settingsValue.textContent = `${getSelectedWpm()} WPM · ${style.label}`;
+  }
+
   function updateStyleHint() {
     const style = getSelectedStyle();
+    updateSettingsSummary();
     elements.styleHint.textContent = state.mode === "upload" && style === 0
       ? "Types the PDF text without adding mistakes."
       : STYLE_HINTS[style];
@@ -425,6 +432,7 @@
       clearError();
     });
 
+    elements.speedOptions.addEventListener("change", updateSettingsSummary);
     elements.styleOptions.addEventListener("change", updateStyleHint);
     elements.form.addEventListener("submit", handleSubmit);
 
