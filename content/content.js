@@ -47,14 +47,30 @@
   function buildPdfPlan(rows, level) {
     const units = [];
     const parts = [];
+    const isImage = (row) => row.runs.length === 1 && /^\(img \d+\)$/.test(row.runs[0].text);
     for (const [index, row] of rows.entries()) {
-      if (index > 0) {
-        parts.push("\n");
-        units.push(null);
+      const previous = rows[index - 1];
+      const continuation = previous && !row.pageBreak && row.gap <= 2 &&
+        previous.alignment === "justify" && ["justify", "left"].includes(row.alignment) &&
+        Math.abs((row.indent || 0) - (previous.indent || 0)) < 3 &&
+        Math.abs(row.runs[0].size - previous.runs[0].size) < 0.5 &&
+        !isImage(row) && !isImage(previous);
+      if (continuation) {
+        const before = previous.runs.at(-1).text;
+        if (!/\s$/.test(before) && !/^\s/.test(row.runs[0].text)) {
+          parts.push(" ");
+          units.push(null);
+        }
+      } else {
+        const lineHeight = previous?.lineHeight || row.lineHeight || 14;
+        const imageSpace = previous && isImage(previous) ? Math.max(0, lineHeight - 14) : 0;
+        const breaks = Number(index > 0) + Math.min(100, Math.round(((row.gap || 0) + imageSpace) / Math.min(lineHeight, 18)));
+        parts.push("\n".repeat(breaks));
+        for (let count = 0; count < breaks; count++) units.push(null);
       }
-      let first = true;
+      let first = !continuation;
       for (const run of row.runs) {
-        const text = /^\(img \d+\)$/.test(run.text) ? run.text : humanize.buildTypingPlan(run.text, { level });
+        const text = isImage(row) ? run.text : humanize.buildTypingPlan(run.text, { level, correctOnly: true });
         parts.push(text);
         for (const character of text) {
           units.push({ run, paragraph: first ? row : undefined });

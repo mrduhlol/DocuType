@@ -192,8 +192,8 @@
   function updateStyleHint() {
     const style = getSelectedStyle();
     updateSettingsSummary();
-    elements.styleHint.textContent = state.mode === "upload" && style === 0
-      ? "Types the PDF text without adding mistakes."
+    elements.styleHint.textContent = state.mode === "upload"
+      ? (style === 0 ? "Types the PDF text without adding mistakes." : "Backspaces and corrects typos as it types.")
       : STYLE_HINTS[style];
   }
 

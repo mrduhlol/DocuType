@@ -38,6 +38,13 @@ test("all levels leave text alone when no random roll lands below the rates", ()
   }
 });
 
+test("correct-only mode types and repairs errors without changing the final text", () => {
+  const text = "A good example of a longer passage.";
+  const plan = buildTypingPlan(text, { level: 3, correctOnly: true, random: () => 0 });
+  assert.ok(plan.includes(MARKER));
+  assert.equal(applyPlan(plan), text);
+});
+
 test("rejects a missing passage", () => {
   assert.equal(buildTypingPlan("", { level: 3 }), "");
   assert.equal(buildTypingPlan(null, { level: 3 }), "");

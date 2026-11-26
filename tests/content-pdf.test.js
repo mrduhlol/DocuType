@@ -45,7 +45,8 @@ test("PDF setup must finish before one-character ticks can reach the document", 
   vm.runInNewContext(fs.readFileSync(contentPath, "utf8"), context);
   const pdfRows = [
     { alignment: "center", runs: [{ text: "A", bold: true }, { text: "😀" }] },
-    { alignment: "right", runs: [{ text: "B" }] },
+    { alignment: "justify", gap: 16, lineHeight: 16, runs: [{ text: "B", size: 12 }] },
+    { alignment: "left", gap: 0, runs: [{ text: "C", size: 12 }] },
   ];
   const response = new Promise((resolve) => {
     const asynchronous = listener({
@@ -60,7 +61,7 @@ test("PDF setup must finish before one-character ticks can reach the document", 
   resolveLayout({ ok: true });
   assert.equal((await response).ok, true);
 
-  assert.equal(typing.text, "A😀\nB");
+  assert.equal(typing.text, "A😀\n\nB C");
   assert.equal(typing.wpm, 45);
   const characters = Array.from(typing.text);
   for (const [index, char] of characters.entries()) {
@@ -71,6 +72,9 @@ test("PDF setup must finish before one-character ticks can reach the document", 
     { char: "A", bold: true, alignment: "center" },
     { char: "😀", bold: undefined, alignment: undefined },
     { char: "\n" },
-    { char: "B", bold: undefined, alignment: "right" },
+    { char: "\n" },
+    { char: "B", bold: undefined, alignment: "justify" },
+    { char: " " },
+    { char: "C", bold: undefined, alignment: undefined },
   ]);
 });

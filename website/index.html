@@ -9,28 +9,58 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <a class="skip" href="#main">Skip to content</a>
   <header class="wrap masthead">
     <a class="brand" href="./"><img src="assets/icon.svg" width="36" height="36" alt="">DocuType</a>
-    <nav aria-label="Main navigation"><a href="#install">Installation guide</a></nav>
+    <nav aria-label="Main navigation"><a href="#install">Installation guide</a><a href="https://github.com/mrduhlol/DocuType">GitHub</a></nav>
   </header>
-  <main>
+  <main id="main">
     <section class="wrap hero">
       <div>
-        <h1>Type your text into Google Docs.</h1>
-        <p>Paste a passage, pick a speed, and start typing.</p>
-        <a class="download" href="https://github.com/mrduhlol/DocuType/archive/refs/heads/main.zip">Download for Chrome <span>ZIP</span></a>
+        <h1>Type into<br>Google Docs<span class="cursor" aria-hidden="true"></span></h1>
+        <p>Paste text or import a PDF, choose a typing speed, and let DocuType enter it into your document.</p>
+        <div class="download-group">
+          <a class="download" href="https://github.com/mrduhlol/DocuType/archive/refs/heads/main.zip" aria-describedby="download-note">
+            <span class="download-label">Download for Chrome</span>
+            <span class="download-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="23" height="23" focusable="false">
+                <path fill="#ea4335" d="M12 2a10 10 0 0 1 8.66 5H12a5 5 0 0 0-4.33 7.5L3.34 7A10 10 0 0 1 12 2Z"/>
+                <path fill="#fbbc05" d="M20.66 7A10 10 0 0 1 12 22l4.33-7.5A5 5 0 0 0 12 7Z"/>
+                <path fill="#34a853" d="M12 22A10 10 0 0 1 3.34 7l4.33 7.5a5 5 0 0 0 8.66 0Z"/>
+                <circle cx="12" cy="12" r="4" fill="#4285f4"/>
+              </svg>
+            </span>
+          </a>
+          <p class="download-note" id="download-note">ZIP download · Install as an unpacked extension</p>
+        </div>
       </div>
       <figure class="product">
-        <img src="assets/popup.png" width="440" height="603" alt="DocuType popup with a sample passage, speed presets, and writing style options">
+        <div class="popup-example" role="img" aria-label="DocuType popup showing a sample passage and the 45 words per minute typing preset">
+          <div class="example-header" aria-hidden="true">
+            <img src="assets/icon.svg" width="32" height="32" alt="">
+            <strong>DocuType</strong>
+            <span class="example-status">Document ready</span>
+          </div>
+          <div class="example-body" aria-hidden="true">
+            <div class="example-editor">
+              <div class="example-tabs"><strong>Paste text</strong><span>Upload PDF</span></div>
+              <div class="example-label">Text to type <span>74 / 10,000</span></div>
+              <p>Every first draft begins with a line. Give yourself room for the next one.<span class="cursor"></span></p>
+            </div>
+            <div class="example-settings"><strong>Typing settings</strong><span>45 WPM · Small</span></div>
+            <div class="example-action">Start typing</div>
+          </div>
+        </div>
       </figure>
     </section>
     <section class="guide" id="install">
-      <div class="wrap">
+      <div class="wrap guide-layout">
         <h2>Install in Chrome</h2>
         <ol class="steps">
           <li><div><h3>Download the ZIP</h3><p>Click <strong>Download for Chrome</strong> above. Look for <code>DocuType-main.zip</code> in your Downloads folder.</p></div></li>
           <li>
-            <div><h3>Extract the folder</h3><p>On Windows, right-click and choose <strong>Extract All</strong>. On Linux, choose <strong>Extract Here</strong> if your file manager offers it. On macOS, double-click the ZIP. Open the extracted folder and check that it contains <code>manifest.json</code>.</p></div>
+            <div><h3>Extract the folder</h3><p>On Windows, right-click the ZIP, choose <strong>Extract All…</strong>, then click <strong>Extract</strong>. On Linux, choose <strong>Extract Here</strong> if your file manager offers it. On macOS, double-click the ZIP. Open the extracted folder and check that it contains <code>manifest.json</code>.</p></div>
+            <figure class="capture"><a href="assets/extract-extension-zip.png"><img src="assets/extract-extension-zip.png" width="634" height="645" loading="lazy" alt="Windows File Explorer with DocuType-main.zip selected and Extract All outlined in the right-click menu"></a><figcaption>Right-click the ZIP, choose <strong>Extract All…</strong>, then click <strong>Extract</strong>.</figcaption></figure>
             <figure class="folder"><figcaption>Inside the extracted folder</figcaption><pre>DocuType-main/
 ├── manifest.json
 ├── content/
@@ -40,14 +70,15 @@
           </li>
           <li>
             <div><h3>Load the extracted folder</h3><p>Open <code>chrome://extensions</code> in Chrome. Switch on <strong>Developer mode</strong>, click <strong>Load unpacked</strong>, and select the folder containing <code>manifest.json</code>. </p></div>
-            <figure class="capture"><a href="assets/chrome-extensions.png"><img src="assets/chrome-extensions.png" width="1000" height="580" loading="lazy" alt="Chromium Extensions page showing Developer mode and the Load unpacked button"></a><figcaption>Developer mode reveals Load unpacked.</figcaption></figure>
+            <figure class="capture"><a href="assets/chrome-extensions.png"><img src="assets/chrome-extensions.png" width="1000" height="260" loading="lazy" alt="Chrome on Windows showing Developer mode enabled and the Load unpacked button"></a><figcaption>Chrome on Windows with Developer mode enabled.</figcaption></figure>
+            <figure class="capture"><a href="assets/select-extension-folder.png"><img src="assets/select-extension-folder.png" width="900" height="310" loading="lazy" alt="Illustrated Windows folder picker showing DocuType-main selected and the Select Folder button"></a><figcaption>Select the extracted folder that contains <code>manifest.json</code>.</figcaption></figure>
           </li>
           <li><div><h3>Open DocuType in Google Docs</h3><p>Open an editable document and place your cursor. From Chrome’s extensions menu, open DocuType, paste your passage, choose a speed, and click <strong>Start typing</strong>.</p></div></li>
         </ol>
       </div>
     </section>
   </main>
-  <script type="module" src="motion.js"></script>
   <footer class="wrap footer"><small>© duhlol</small><a href="https://github.com/mrduhlol/DocuType">Source on GitHub</a></footer>
+  <script src="motion.js"></script>
 </body>
 </html>
