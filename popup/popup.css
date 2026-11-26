@@ -1,40 +1,39 @@
 :root {
   color-scheme: light dark;
-  --bg: #f7f8fa;
-  --paper: #fff;
-  --text: #20242b;
-  --muted: #555e6d;
-  --line: #dce0e6;
-  --track: #eef0f3;
-  --accent: #b73716;
-  --soft: #fdf0ea;
-  --action: #b73716;
-  --action-hover: #972c11;
-  --action-text: #fff;
-  --success: #17633f;
-  --success-bg: #e4f6eb;
-  --error: #a42d29;
-  --shadow: 0 3px 9px #17203312;
-  --gutter: 20px;
+  --bg: #f7f5f0;
+  --paper: #fffdfa;
+  --text: #131313;
+  --muted: #595751;
+  --line: #d4cfc5;
+  --track: #ebe7df;
+  --accent: #131313;
+  --soft: #eeeae2;
+  --action: #131313;
+  --action-hover: #373530;
+  --action-text: #f7f5f0;
+  --success: #272722;
+  --success-bg: #eeeae2;
+  --error: #9a2926;
+  --gutter: 18px;
+  --mono: "Consolas", "SFMono-Regular", "Liberation Mono", monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #191c21;
-    --paper: #22262d;
-    --text: #f4f5f8;
-    --muted: #b6bfce;
-    --line: #414855;
-    --track: #292e37;
-    --accent: #ffac90;
-    --soft: #432d28;
-    --action: #ffac90;
-    --action-hover: #ffc3ae;
-    --action-text: #32170e;
-    --success: #a3e5bf;
-    --success-bg: #21392d;
-    --error: #ffa9a2;
-    --shadow: 0 3px 9px #0003;
+    --bg: #131313;
+    --paper: #1c1b19;
+    --text: #f7f5f0;
+    --muted: #c1bdb2;
+    --line: #504c44;
+    --track: #2a2824;
+    --accent: #f7f5f0;
+    --soft: #302e29;
+    --action: #f7f5f0;
+    --action-hover: #e2ded5;
+    --action-text: #131313;
+    --success: #e5dfd3;
+    --success-bg: #302e29;
+    --error: #ffaaa4;
   }
 }
 
@@ -47,7 +46,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 13px/1.45 system-ui, sans-serif;
+  font: 13px/1.45 var(--mono);
 }
 
 [hidden] {
@@ -77,10 +76,8 @@ body {
 }
 
 .brand-mark {
-  width: 36px;
-  height: 36px;
-  border-radius: 11px;
-  box-shadow: var(--shadow);
+  width: 38px;
+  height: 38px;
 }
 
 .brand-copy {
@@ -91,7 +88,7 @@ body {
 .brand-name {
   font-size: 19px;
   font-weight: 760;
-  letter-spacing: -.045em;
+  letter-spacing: -.025em;
   line-height: 1.12;
 }
 
@@ -106,8 +103,8 @@ body {
   align-items: center;
   gap: 6px;
   flex: none;
-  padding: 5px 9px;
-  border-radius: 999px;
+  padding: 4px 7px;
+  border: 1px solid var(--line);
   background: var(--track);
   color: var(--muted);
   font-size: 11px;
@@ -146,7 +143,6 @@ body {
   gap: 4px;
   margin-bottom: 10px;
   padding: 4px;
-  border-radius: 12px;
   background: var(--track);
 }
 
@@ -158,7 +154,6 @@ body {
   min-height: 36px;
   padding: 5px 8px;
   border: 1px solid transparent;
-  border-radius: 9px;
   background: transparent;
   color: var(--muted);
   font: inherit;
@@ -184,25 +179,23 @@ body {
 .source-switch button[aria-pressed="true"] {
   border-color: var(--line);
   background: var(--paper);
-  box-shadow: var(--shadow);
 }
 
 .passage-panel {
   border: 1px solid var(--line);
-  border-radius: 13px;
   background: var(--paper);
-  box-shadow: var(--shadow);
 }
 
 .passage-panel:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--soft);
+  outline: 1px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .field-head {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
   padding: 10px 12px 0;
 }
@@ -223,7 +216,7 @@ body {
 .passage-input {
   display: block;
   width: 100%;
-  height: 200px;
+  height: 178px;
   resize: vertical;
   min-height: 104px;
   max-height: 290px;
@@ -232,9 +225,7 @@ body {
   background: transparent;
   color: var(--text);
   padding: 7px 12px 9px;
-  font: inherit;
-  font-size: 14px;
-  line-height: 1.6;
+  font: 16px/1.55 "Courier New", Courier, monospace;
   caret-color: var(--accent);
 }
 
@@ -273,7 +264,6 @@ body {
   min-height: 224px;
   padding: 14px;
   border: 1px dashed var(--accent);
-  border-radius: 13px;
   background: var(--paper);
   color: var(--muted);
   font: inherit;
@@ -329,7 +319,6 @@ body {
   cursor: pointer;
   background: var(--paper);
   border: 1px solid var(--line);
-  border-radius: 10px;
   padding: 7px 9px;
   transition: background-color 150ms ease, border-color 150ms ease;
 }
@@ -392,7 +381,6 @@ body {
   min-height: 44px;
   padding: 10px 14px;
   border: 1px solid transparent;
-  border-radius: 11px;
   background: var(--action);
   color: var(--action-text);
   font: inherit;
@@ -440,7 +428,7 @@ body {
 .app-footer {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   flex-wrap: wrap;
   gap: 8px;
   padding: 11px var(--gutter) 14px;
@@ -478,7 +466,6 @@ body {
   padding: 10px 12px;
   margin: 12px var(--gutter) 0;
   border: 1px solid var(--line);
-  border-radius: 11px;
   background: var(--soft);
   font-size: 12px;
 }
@@ -535,17 +522,15 @@ body {
   display: flex;
   gap: 16px;
   margin-bottom: 0;
-  padding: 0 12px;
+  padding: 0 13px;
   border-bottom: 1px solid var(--line);
-  border-radius: 0;
   background: transparent;
 }
 
 .source-switch button {
   min-height: 42px;
-  padding: 0 2px;
+  padding: 0 5px;
   border: 0;
-  border-radius: 0;
 }
 
 .source-switch button[aria-pressed="true"] {
@@ -559,19 +544,16 @@ body {
 
 .composer {
   border: 1px solid var(--line);
-  border-radius: 12px;
   background: var(--paper);
-  box-shadow: var(--shadow);
 }
 
 .passage-panel {
   border: 0;
-  border-radius: 0 0 11px 11px;
-  box-shadow: none;
 }
 
 .field-head {
   padding-top: 12px;
+  padding-bottom: 6px;
 }
 
 .passage-label {
@@ -581,7 +563,6 @@ body {
 
 .editor-hint {
   background: var(--bg);
-  border-radius: 0 0 11px 11px;
 }
 
 .upload-panel {
@@ -589,12 +570,10 @@ body {
 }
 
 .pdf-drop {
-  border-radius: 7px;
 }
 
 .settings {
   border: 1px solid var(--line);
-  border-radius: 10px;
   background: var(--paper);
 }
 
@@ -604,8 +583,7 @@ body {
   flex-wrap: wrap;
   gap: 8px;
   min-height: 42px;
-  padding: 8px 10px;
-  border-radius: 9px;
+  padding: 8px 12px;
   font-weight: 650;
   cursor: pointer;
   list-style: none;
@@ -631,7 +609,7 @@ body {
   margin-inline-start: auto;
   color: var(--muted);
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
@@ -642,16 +620,12 @@ body {
 .settings-panel {
   display: grid;
   gap: 12px;
-  padding: 11px;
+  padding: 12px;
   border-top: 1px solid var(--line);
 }
 
 .settings-panel .style-hint {
   min-height: 0;
-}
-
-.start-button {
-  border-radius: 8px;
 }
 
 .app-footer {
